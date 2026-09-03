@@ -7,19 +7,20 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"></script>
 <style>
   :root{
-    --paper:#FAF7F0;
+    --paper:#F2F6FA;
     --card:#FFFFFF;
-    --ink:#21262E;
-    --ink-soft:#5B6472;
-    --border:#E6E0D2;
-    --teal:#1F6F78;
-    --teal-dark:#164F56;
+    --ink:#1C2B3A;
+    --ink-soft:#5E7185;
+    --border:#DCE6F0;
+    --teal:#3373A0;
+    --teal-dark:#1F4E70;
     --gold:#B8892F;
     --sage:#4B7857;
-    --slate:#9AA2AC;
-    --danger:#B14B3D;
+    --slate:#8B96A5;
+    --danger:#B1503F;
   }
   *{box-sizing:border-box;}
   body{
@@ -29,326 +30,114 @@
     font-family:'Inter',system-ui,sans-serif;
     -webkit-font-smoothing:antialiased;
   }
-  .app{
-    max-width:640px;
-    margin:0 auto;
-    padding:20px 16px 100px;
-  }
-  h1,h2,h3{
-    font-family:'Fraunces',serif;
-    margin:0;
-  }
-  .top{
-    display:flex;
-    align-items:baseline;
-    justify-content:space-between;
-    margin-bottom:18px;
-  }
-  .top h1{
-    font-size:26px;
-    font-weight:600;
-    letter-spacing:-0.01em;
-  }
-  .top .sub{
-    font-size:12.5px;
-    color:var(--ink-soft);
-    margin-top:2px;
-  }
+  .app{ max-width:640px; margin:0 auto; padding:20px 16px 100px; }
+  h1,h2,h3{ font-family:'Fraunces',serif; margin:0; }
+  .top{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:18px; }
+  .top h1{ font-size:26px; font-weight:600; letter-spacing:-0.01em; }
+  .top .sub{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
   .new-trip-btn{
-    background:var(--ink);
-    color:var(--paper);
-    border:none;
-    border-radius:10px;
-    padding:10px 14px;
-    font-size:13.5px;
-    font-weight:500;
-    cursor:pointer;
-    font-family:'Inter',sans-serif;
-    white-space:nowrap;
+    background:linear-gradient(135deg,#3373A0,#1F4E70); color:#fff; border:none; border-radius:10px;
+    padding:10px 14px; font-size:13.5px; font-weight:500; cursor:pointer;
+    font-family:'Inter',sans-serif; white-space:nowrap;
   }
   .new-trip-btn:active{transform:scale(0.97);}
-
-  .empty{
-    text-align:center;
-    padding:60px 20px;
-    color:var(--ink-soft);
-  }
+  .empty{ text-align:center; padding:60px 20px; color:var(--ink-soft); }
   .empty h3{font-size:19px;color:var(--ink);margin-bottom:8px;font-weight:600;}
   .empty p{font-size:14px;line-height:1.5;margin:0 0 18px;}
-
-  .trip-card{
-    background:var(--card);
-    border:1px solid var(--border);
-    border-radius:14px;
-    margin-bottom:16px;
-    overflow:hidden;
-  }
-  .trip-head{
-    padding:16px 18px;
-    cursor:pointer;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:10px;
-  }
+  .trip-card{ background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:16px; overflow:hidden; }
+  .trip-head{ padding:16px 18px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:10px; }
   .trip-head-left{min-width:0;}
   .trip-name{font-size:18px;font-weight:600;}
   .trip-dest{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
-  .trip-meta{
-    font-size:11.5px;
-    color:var(--ink-soft);
-    margin-top:6px;
-    font-family:'IBM Plex Mono',monospace;
-    letter-spacing:0.01em;
-  }
-  .chevron{
-    flex-shrink:0;
-    transition:transform 0.2s ease;
-    color:var(--ink-soft);
-  }
+  .trip-meta{font-size:11.5px;color:var(--ink-soft);margin-top:6px;font-family:'IBM Plex Mono',monospace;letter-spacing:0.01em;}
+  .chevron{flex-shrink:0;transition:transform 0.2s ease;color:var(--ink-soft);}
   .chevron.open{transform:rotate(180deg);}
-
-  .bookings{
-    border-top:1px solid var(--border);
-    padding:14px 14px 16px;
-    display:none;
-  }
+  .bookings{border-top:1px solid var(--border);padding:14px 14px 16px;display:none;}
   .bookings.open{display:block;}
 
-  .stub{
-    display:flex;
-    background:var(--paper);
-    border:1px solid var(--border);
-    border-radius:10px;
-    margin-bottom:10px;
-    position:relative;
-    overflow:hidden;
+  .card{
+    background:var(--paper); border:1px solid var(--border); border-radius:10px;
+    margin-bottom:10px; overflow:hidden;
   }
-  .stub-main{
-    flex:1;
-    padding:12px 12px 12px 14px;
-    min-width:0;
-  }
-  .stub-type-row{
-    display:flex;
-    align-items:center;
-    gap:7px;
-    margin-bottom:5px;
-  }
-  .stub-icon{
-    width:15px;height:15px;flex-shrink:0;color:var(--teal);
-  }
-  .stub-source{
-    font-size:10.5px;
-    color:var(--ink-soft);
-    text-transform:uppercase;
-    letter-spacing:0.04em;
-  }
-  .stub-title{
-    font-size:14.5px;
-    font-weight:600;
-    line-height:1.3;
-  }
-  .stub-dates{
-    font-size:12px;
-    color:var(--ink-soft);
-    margin-top:4px;
-    font-family:'IBM Plex Mono',monospace;
-  }
-  .stub-code{
-    font-size:11px;
-    color:var(--ink-soft);
-    margin-top:3px;
-    font-family:'IBM Plex Mono',monospace;
-  }
-  .stub-notes{
-    font-size:12px;
-    color:var(--ink-soft);
-    margin-top:5px;
-    font-style:italic;
-    line-height:1.4;
-  }
-  .stub-stub{
-    width:88px;
-    flex-shrink:0;
-    border-left:1px dashed var(--border);
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap:6px;
-    padding:8px 6px;
-    text-align:center;
-  }
-  .stub-stub::before, .stub-stub::after{
-    content:'';
-    position:absolute;
-    width:14px;height:14px;
-    background:var(--paper);
-    border-radius:50%;
-    right:80px;
-  }
-  .stub-stub::before{top:-7px;}
-  .stub-stub::after{bottom:-7px;}
-  .status-pill{
-    font-size:10px;
-    font-weight:600;
-    padding:3px 8px;
-    border-radius:20px;
-    white-space:nowrap;
-    letter-spacing:0.01em;
-  }
+  .card-head{ display:flex; align-items:flex-start; gap:10px; padding:11px 12px; cursor:pointer; }
+  .card-icon{ width:30px;height:30px;flex-shrink:0;border-radius:8px;background:#E6EFF7;color:var(--teal); display:flex;align-items:center;justify-content:center; }
+  .card-icon svg{width:16px;height:16px;}
+  .card-main{ flex:1; min-width:0; }
+  .card-title-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .card-title{ font-size:14.5px; font-weight:600; line-height:1.3; }
+  .status-pill{ font-size:10px; font-weight:600; padding:3px 8px; border-radius:20px; white-space:nowrap; letter-spacing:0.01em; flex-shrink:0; }
   .status-upcoming{background:#F3E7CB;color:var(--gold);}
   .status-active{background:#DCEADD;color:var(--sage);}
   .status-done{background:#E9EAEC;color:var(--slate);}
-  .del-btn{
-    background:none;
-    border:none;
-    color:var(--ink-soft);
-    font-size:10.5px;
-    cursor:pointer;
-    padding:2px;
-    font-family:'Inter',sans-serif;
+  .card-route{ font-size:12.5px; color:var(--ink); margin-top:3px; font-family:'IBM Plex Mono',monospace; }
+  .card-time{ font-size:12px; color:var(--ink-soft); margin-top:3px; font-family:'IBM Plex Mono',monospace; }
+  .card-duration{ display:inline-block; font-size:10.5px; color:var(--teal-dark); background:#E6EFF7; padding:1px 6px; border-radius:6px; margin-left:6px; font-family:'Inter',sans-serif; }
+  .card-code{ font-size:11px; color:var(--ink-soft); margin-top:3px; font-family:'IBM Plex Mono',monospace; }
+  .card-chevron{ width:14px;height:14px;color:var(--ink-soft);flex-shrink:0;margin-top:3px;transition:transform .2s ease; }
+  .card-chevron.open{transform:rotate(180deg);}
+
+  .card-detail{ display:none; border-top:1px dashed var(--border); padding:10px 12px 12px 12px; }
+  .card-detail.open{display:block;}
+  .detail-row{ font-size:12.5px; color:var(--ink-soft); margin-bottom:6px; line-height:1.4; }
+  .detail-row b{color:var(--ink);font-weight:600;}
+  .detail-row a{color:var(--teal);word-break:break-all;}
+  .detail-actions{ display:flex; gap:8px; margin-top:8px; }
+  .mini-btn{
+    flex:1; padding:8px; border-radius:8px; font-size:12.5px; font-weight:600;
+    cursor:pointer; font-family:'Inter',sans-serif; border:1px solid var(--border);
+    background:var(--card); color:var(--ink-soft); display:flex; align-items:center; justify-content:center; gap:5px;
   }
-  .del-btn:hover{color:var(--danger);}
+  .mini-btn.danger{color:var(--danger);}
+  .mini-btn svg{width:13px;height:13px;}
 
   .add-booking-btn{
-    width:100%;
-    background:none;
-    border:1px dashed var(--border);
-    border-radius:10px;
-    padding:10px;
-    color:var(--teal);
-    font-size:13px;
-    font-weight:500;
-    cursor:pointer;
-    margin-top:2px;
-    font-family:'Inter',sans-serif;
+    width:100%; background:none; border:1px dashed var(--border); border-radius:10px;
+    padding:10px; color:var(--teal); font-size:13px; font-weight:500; cursor:pointer;
+    margin-top:2px; font-family:'Inter',sans-serif;
   }
   .add-ticket-btn{
-    width:100%;
-    background:var(--teal);
-    border:none;
-    border-radius:10px;
-    padding:10px;
-    color:#fff;
-    font-size:13px;
-    font-weight:600;
-    cursor:pointer;
-    margin-top:8px;
-    font-family:'Inter',sans-serif;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:6px;
+    width:100%; background:linear-gradient(135deg,#3373A0,#1F4E70); border:none; border-radius:10px; padding:10px;
+    color:#fff; font-size:13px; font-weight:600; cursor:pointer; margin-top:8px;
+    font-family:'Inter',sans-serif; display:flex; align-items:center; justify-content:center; gap:6px;
   }
-  .pro-badge{
-    font-size:9.5px;
-    font-weight:700;
-    background:rgba(255,255,255,0.25);
-    padding:2px 6px;
-    border-radius:6px;
-    letter-spacing:0.03em;
-  }
-  .parse-hint{
-    font-size:11px;
-    color:var(--ink-soft);
-    text-align:center;
-    margin-top:6px;
-    line-height:1.4;
-  }
-
-  .del-trip{
-    font-size:11.5px;
-    color:var(--ink-soft);
-    background:none;
-    border:none;
-    cursor:pointer;
-    padding:6px 0 0;
-    font-family:'Inter',sans-serif;
-  }
+  .pro-badge{ font-size:9.5px; font-weight:700; background:rgba(255,255,255,0.25); padding:2px 6px; border-radius:6px; letter-spacing:0.03em; }
+  .parse-hint{ font-size:11px; color:var(--ink-soft); text-align:center; margin-top:6px; line-height:1.4; }
+  .del-trip{ font-size:11.5px; color:var(--ink-soft); background:none; border:none; cursor:pointer; padding:6px 0 0; font-family:'Inter',sans-serif; }
   .del-trip:hover{color:var(--danger);}
 
-  /* Modal */
-  .overlay{
-    position:fixed;inset:0;
-    background:rgba(33,38,46,0.45);
-    display:none;
-    align-items:flex-end;
-    justify-content:center;
-    z-index:50;
-  }
+  .overlay{ position:fixed;inset:0; background:rgba(33,38,46,0.45); display:none; align-items:flex-end; justify-content:center; z-index:50; }
   .overlay.open{display:flex;}
-  .sheet{
-    background:var(--card);
-    width:100%;
-    max-width:640px;
-    border-radius:18px 18px 0 0;
-    padding:20px 18px 24px;
-    max-height:88vh;
-    overflow-y:auto;
-  }
+  .sheet{ background:var(--card); width:100%; max-width:640px; border-radius:18px 18px 0 0; padding:20px 18px 24px; max-height:88vh; overflow-y:auto; }
   .sheet h3{font-size:17px;font-weight:600;margin-bottom:14px;}
   .field{margin-bottom:12px;}
-  .field label{
-    display:block;
-    font-size:11.5px;
-    color:var(--ink-soft);
-    margin-bottom:5px;
-    font-weight:500;
-  }
+  .field label{ display:block; font-size:11.5px; color:var(--ink-soft); margin-bottom:5px; font-weight:500; }
   .field input, .field select, .field textarea{
-    width:100%;
-    padding:10px 11px;
-    border:1px solid var(--border);
-    border-radius:9px;
-    font-size:14.5px;
-    font-family:'Inter',sans-serif;
-    background:var(--paper);
-    color:var(--ink);
+    width:100%; padding:10px 11px; border:1px solid var(--border); border-radius:9px;
+    font-size:14.5px; font-family:'Inter',sans-serif; background:var(--paper); color:var(--ink);
   }
   .field textarea{resize:none;min-height:50px;}
-  .type-row{display:flex;gap:6px;}
+  .type-row{display:flex;gap:6px;flex-wrap:wrap;}
   .type-opt{
-    flex:1;
-    padding:9px 4px;
-    border:1px solid var(--border);
-    border-radius:9px;
-    text-align:center;
-    font-size:12px;
-    cursor:pointer;
-    color:var(--ink-soft);
+    flex:1; min-width:70px; padding:9px 4px; border:1px solid var(--border); border-radius:9px;
+    text-align:center; font-size:12px; cursor:pointer; color:var(--ink-soft);
   }
-  .type-opt.sel{
-    border-color:var(--teal);
-    background:#EAF3F3;
-    color:var(--teal-dark);
-    font-weight:600;
-  }
-  .row2{display:flex;gap:10px;}
-  .row2 .field{flex:1;}
+  .type-opt.sel{ border-color:var(--teal); background:#E6EFF7; color:var(--teal-dark); font-weight:600; }
   .sheet-actions{display:flex;gap:10px;margin-top:16px;}
-  .btn{
-    flex:1;
-    padding:12px;
-    border-radius:10px;
-    border:none;
-    font-size:14px;
-    font-weight:600;
-    cursor:pointer;
-    font-family:'Inter',sans-serif;
-  }
-  .btn-primary{background:var(--teal);color:#fff;}
+  .btn{ flex:1; padding:12px; border-radius:10px; border:none; font-size:14px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; }
+  .btn-primary{background:linear-gradient(135deg,#3373A0,#1F4E70);color:#fff;}
   .btn-ghost{background:none;color:var(--ink-soft);border:1px solid var(--border);}
-  .note{
-    font-size:11.5px;
-    color:var(--ink-soft);
-    line-height:1.5;
-    background:#F2EEE2;
-    border-radius:10px;
-    padding:10px 12px;
-    margin-bottom:16px;
+
+  .airport-wrap{position:relative;}
+  .airport-results{
+    position:absolute; left:0; right:0; top:100%; background:var(--card);
+    border:1px solid var(--border); border-radius:9px; margin-top:4px; max-height:180px;
+    overflow-y:auto; z-index:10; box-shadow:0 6px 18px rgba(0,0,0,0.08);
   }
+  .airport-opt{ padding:8px 11px; font-size:13px; cursor:pointer; border-bottom:1px solid var(--border); }
+  .airport-opt:last-child{border-bottom:none;}
+  .airport-opt:hover{background:var(--paper);}
+  .airport-opt .code{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--teal-dark);}
+  .airport-opt .city{color:var(--ink-soft);font-size:11.5px;}
 </style>
 </head>
 <body>
@@ -358,14 +147,8 @@
 <div class="overlay" id="tripOverlay">
   <div class="sheet">
     <h3>Новая поездка</h3>
-    <div class="field">
-      <label>Название</label>
-      <input id="tripNameInput" placeholder="Например: Грузия, октябрь">
-    </div>
-    <div class="field">
-      <label>Направление</label>
-      <input id="tripDestInput" placeholder="Тбилиси, Батуми">
-    </div>
+    <div class="field"><label>Название</label><input id="tripNameInput" placeholder="Например: Грузия, октябрь"></div>
+    <div class="field"><label>Направление</label><input id="tripDestInput" placeholder="Тбилиси, Батуми"></div>
     <div class="sheet-actions">
       <button class="btn btn-ghost" onclick="closeTripSheet()">Отмена</button>
       <button class="btn btn-primary" onclick="saveTrip()">Создать</button>
@@ -374,67 +157,201 @@
 </div>
 
 <div class="overlay" id="bookingOverlay">
-  <div class="sheet">
-    <h3>Добавить бронирование</h3>
+  <div class="sheet" id="bookingSheetInner">
+    <h3 id="bookingSheetTitle">Добавить бронирование</h3>
     <div class="field">
       <label>Тип</label>
       <div class="type-row" id="typeRow"></div>
     </div>
-    <div class="field">
-      <label>Название</label>
-      <input id="bTitle" placeholder="Рейс AB123 / Отель Marriott">
+    <div class="field" id="subtypeField" style="display:none;">
+      <label>Вид транспорта</label>
+      <div class="type-row" id="subtypeRow"></div>
     </div>
-    <div class="field">
-      <label>Источник (где куплено)</label>
-      <input id="bSource" placeholder="Booking.com, сайт авиакомпании...">
-    </div>
-    <div class="row2">
-      <div class="field">
-        <label>Начало</label>
-        <input id="bStart" type="datetime-local">
-      </div>
-      <div class="field">
-        <label>Окончание (если есть)</label>
-        <input id="bEnd" type="datetime-local">
-      </div>
-    </div>
-    <div class="field">
-      <label>Номер брони / код</label>
-      <input id="bCode" placeholder="PNR, номер подтверждения">
-    </div>
-    <div class="field">
-      <label>Заметка</label>
-      <textarea id="bNotes" placeholder="Что важно не забыть"></textarea>
-    </div>
+
+    <div id="dynamicFields"></div>
+
+    <div class="field"><label>Источник (где куплено)</label><input id="bSource" placeholder="Booking.com, сайт авиакомпании..."></div>
+    <div class="field"><label>Начало</label><input id="bStart" type="datetime-local"></div>
+    <div class="field"><label>Окончание (если есть)</label><input id="bEnd" type="datetime-local"></div>
+    <div class="field"><label>Номер брони / код</label><input id="bCode" placeholder="PNR, номер подтверждения"></div>
+    <div class="field"><label>Ссылка</label><input id="bLink" placeholder="Ссылка на бронь/билет"></div>
+    <div class="field"><label>Заметка</label><textarea id="bNotes" placeholder="Что важно не забыть"></textarea></div>
     <div class="sheet-actions">
       <button class="btn btn-ghost" onclick="closeBookingSheet()">Отмена</button>
-      <button class="btn btn-primary" onclick="saveBooking()">Добавить</button>
+      <button class="btn btn-primary" onclick="saveBooking()">Сохранить</button>
     </div>
   </div>
 </div>
 
 <script>
 const ICONS = {
-  flight: '<svg class="stub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-1 .1-1.3.5l-.5.6c-.4.5-.2 1.2.3 1.5L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.4 5.8c.3.5 1 .7 1.5.3l.6-.5c.4-.3.6-.8.5-1.3Z"/></svg>',
-  hotel: '<svg class="stub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V7a2 2 0 0 1 2-2h6v16"/><path d="M13 21V11a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v10"/><path d="M3 21h18"/><circle cx="9" cy="10" r=".5"/><path d="M7 21v-4a2 2 0 0 1 4 0v4"/></svg>',
-  excursion: '<svg class="stub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 19.4 15 4.5 9.6 17.7 6.5 13 3 19.4"/><circle cx="12" cy="12" r="10"/></svg>',
-  other: '<svg class="stub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2Z"/></svg>'
+  plane: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-1 .1-1.3.5l-.5.6c-.4.5-.2 1.2.3 1.5L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.4 5.8c.3.5 1 .7 1.5.3l.6-.5c.4-.3.6-.8.5-1.3Z"/></svg>',
+  train: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="13" rx="3"/><path d="M4 11h16"/><path d="M9 3v8"/><path d="M15 3v8"/><circle cx="8" cy="16.5" r=".5"/><circle cx="16" cy="16.5" r=".5"/><path d="m8 19-2 3M16 19l2 3"/></svg>',
+  bus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M3 11h18"/><path d="M7 17v2M17 17v2"/><circle cx="7.5" cy="14" r=".5"/><circle cx="16.5" cy="14" r=".5"/></svg>',
+  car: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 0 1-2-2v-2l2-5h14l2 5v2a2 2 0 0 1-2 2M5 17v2M19 17v2"/><circle cx="7.5" cy="14.5" r="1.2"/><circle cx="16.5" cy="14.5" r="1.2"/></svg>',
+  stay: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V7a2 2 0 0 1 2-2h6v16"/><path d="M13 21V11a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v10"/><path d="M3 21h18"/><path d="M7 21v-4a2 2 0 0 1 4 0v4"/></svg>',
+  excursion: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m14.5 9.5-1.7 4.8a1 1 0 0 1-.6.6l-4.8 1.7 1.7-4.8a1 1 0 0 1 .6-.6z"/></svg>',
+  other: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2Z"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>'
 };
-const TYPE_LABELS = {flight:'Перелёт', hotel:'Отель', excursion:'Экскурсия', other:'Другое'};
+const TYPE_LABELS = {transport:'Транспорт', stay:'Проживание', excursion:'Экскурсия', other:'Другое'};
+const SUBTYPE_LABELS = {plane:'Самолёт', train:'Поезд', bus:'Автобус', car:'Машина'};
+
+const FALLBACK_AIRPORTS = [
+  {iata:'SVO',city:'Moscow',name:'Sheremetyevo',country:'Russia',tz:'Europe/Moscow'},
+  {iata:'DME',city:'Moscow',name:'Domodedovo',country:'Russia',tz:'Europe/Moscow'},
+  {iata:'VKO',city:'Moscow',name:'Vnukovo',country:'Russia',tz:'Europe/Moscow'},
+  {iata:'LED',city:'Saint Petersburg',name:'Pulkovo',country:'Russia',tz:'Europe/Moscow'},
+  {iata:'AER',city:'Sochi',name:'Sochi',country:'Russia',tz:'Europe/Moscow'},
+  {iata:'KZN',city:'Kazan',name:'Kazan',country:'Russia',tz:'Europe/Moscow'},
+  {iata:'ROV',city:'Rostov-on-Don',name:'Platov',country:'Russia',tz:'Europe/Moscow'},
+  {iata:'KRR',city:'Krasnodar',name:'Pashkovsky',country:'Russia',tz:'Europe/Moscow'},
+  {iata:'UFA',city:'Ufa',name:'Ufa',country:'Russia',tz:'Asia/Yekaterinburg'},
+  {iata:'SVX',city:'Yekaterinburg',name:'Koltsovo',country:'Russia',tz:'Asia/Yekaterinburg'},
+  {iata:'OVB',city:'Novosibirsk',name:'Tolmachevo',country:'Russia',tz:'Asia/Novosibirsk'},
+  {iata:'VVO',city:'Vladivostok',name:'Knevichi',country:'Russia',tz:'Asia/Vladivostok'},
+  {iata:'KHV',city:'Khabarovsk',name:'Novy',country:'Russia',tz:'Asia/Vladivostok'},
+  {iata:'KGD',city:'Kaliningrad',name:'Khrabrovo',country:'Russia',tz:'Europe/Kaliningrad'},
+  {iata:'GOJ',city:'Nizhny Novgorod',name:'Strigino',country:'Russia',tz:'Europe/Moscow'},
+  {iata:'STW',city:'Stavropol',name:'Shpakovskoye',country:'Russia',tz:'Europe/Moscow'},
+  {iata:'MRV',city:'Mineralnye Vody',name:'Mineralnye Vody',country:'Russia',tz:'Europe/Moscow'},
+  {iata:'CEK',city:'Chelyabinsk',name:'Chelyabinsk',country:'Russia',tz:'Asia/Yekaterinburg'},
+  {iata:'KUF',city:'Samara',name:'Kurumoch',country:'Russia',tz:'Europe/Samara'},
+  {iata:'VOZ',city:'Voronezh',name:'Chertovitskoye',country:'Russia',tz:'Europe/Moscow'},
+  {iata:'KBP',city:'Kyiv',name:'Boryspil',country:'Ukraine',tz:'Europe/Kyiv'},
+  {iata:'MSQ',city:'Minsk',name:'Minsk National',country:'Belarus',tz:'Europe/Minsk'},
+  {iata:'ALA',city:'Almaty',name:'Almaty Intl',country:'Kazakhstan',tz:'Asia/Almaty'},
+  {iata:'NQZ',city:'Astana',name:'Nursultan Nazarbayev',country:'Kazakhstan',tz:'Asia/Almaty'},
+  {iata:'TAS',city:'Tashkent',name:'Tashkent Intl',country:'Uzbekistan',tz:'Asia/Tashkent'},
+  {iata:'FRU',city:'Bishkek',name:'Manas',country:'Kyrgyzstan',tz:'Asia/Bishkek'},
+  {iata:'DYU',city:'Dushanbe',name:'Dushanbe',country:'Tajikistan',tz:'Asia/Dushanbe'},
+  {iata:'ASB',city:'Ashgabat',name:'Ashgabat',country:'Turkmenistan',tz:'Asia/Ashgabat'},
+  {iata:'GYD',city:'Baku',name:'Heydar Aliyev',country:'Azerbaijan',tz:'Asia/Baku'},
+  {iata:'EVN',city:'Yerevan',name:'Zvartnots',country:'Armenia',tz:'Asia/Yerevan'},
+  {iata:'TBS',city:'Tbilisi',name:'Tbilisi Intl',country:'Georgia',tz:'Asia/Tbilisi'},
+  {iata:'KUT',city:'Kutaisi',name:'Kopitnari',country:'Georgia',tz:'Asia/Tbilisi'},
+  {iata:'BUS',city:'Batumi',name:'Batumi',country:'Georgia',tz:'Asia/Tbilisi'},
+  {iata:'KIV',city:'Chisinau',name:'Chisinau Intl',country:'Moldova',tz:'Europe/Chisinau'},
+  {iata:'IST',city:'Istanbul',name:'Istanbul Airport',country:'Turkey',tz:'Europe/Istanbul'},
+  {iata:'SAW',city:'Istanbul',name:'Sabiha Gokcen',country:'Turkey',tz:'Europe/Istanbul'},
+  {iata:'AYT',city:'Antalya',name:'Antalya',country:'Turkey',tz:'Europe/Istanbul'},
+  {iata:'DLM',city:'Dalaman',name:'Dalaman',country:'Turkey',tz:'Europe/Istanbul'},
+  {iata:'ADB',city:'Izmir',name:'Adnan Menderes',country:'Turkey',tz:'Europe/Istanbul'},
+  {iata:'BJV',city:'Bodrum',name:'Milas-Bodrum',country:'Turkey',tz:'Europe/Istanbul'},
+  {iata:'ESB',city:'Ankara',name:'Esenboga',country:'Turkey',tz:'Europe/Istanbul'},
+  {iata:'HRG',city:'Hurghada',name:'Hurghada Intl',country:'Egypt',tz:'Africa/Cairo'},
+  {iata:'SSH',city:'Sharm El Sheikh',name:'Sharm El Sheikh Intl',country:'Egypt',tz:'Africa/Cairo'},
+  {iata:'CAI',city:'Cairo',name:'Cairo Intl',country:'Egypt',tz:'Africa/Cairo'},
+  {iata:'RMF',city:'Marsa Alam',name:'Marsa Alam',country:'Egypt',tz:'Africa/Cairo'},
+  {iata:'DXB',city:'Dubai',name:'Dubai Intl',country:'UAE',tz:'Asia/Dubai'},
+  {iata:'AUH',city:'Abu Dhabi',name:'Zayed Intl',country:'UAE',tz:'Asia/Dubai'},
+  {iata:'SHJ',city:'Sharjah',name:'Sharjah Intl',country:'UAE',tz:'Asia/Dubai'},
+  {iata:'DOH',city:'Doha',name:'Hamad Intl',country:'Qatar',tz:'Asia/Qatar'},
+  {iata:'BKK',city:'Bangkok',name:'Suvarnabhumi',country:'Thailand',tz:'Asia/Bangkok'},
+  {iata:'HKT',city:'Phuket',name:'Phuket Intl',country:'Thailand',tz:'Asia/Bangkok'},
+  {iata:'USM',city:'Koh Samui',name:'Samui',country:'Thailand',tz:'Asia/Bangkok'},
+  {iata:'CNX',city:'Chiang Mai',name:'Chiang Mai',country:'Thailand',tz:'Asia/Bangkok'},
+  {iata:'LCA',city:'Larnaca',name:'Larnaca Intl',country:'Cyprus',tz:'Asia/Nicosia'},
+  {iata:'PFO',city:'Paphos',name:'Paphos Intl',country:'Cyprus',tz:'Asia/Nicosia'},
+  {iata:'MLE',city:'Male',name:'Velana Intl',country:'Maldives',tz:'Indian/Maldives'},
+  {iata:'CMB',city:'Colombo',name:'Bandaranaike',country:'Sri Lanka',tz:'Asia/Colombo'},
+  {iata:'SGN',city:'Ho Chi Minh City',name:'Tan Son Nhat',country:'Vietnam',tz:'Asia/Ho_Chi_Minh'},
+  {iata:'HAN',city:'Hanoi',name:'Noi Bai',country:'Vietnam',tz:'Asia/Ho_Chi_Minh'},
+  {iata:'CXR',city:'Nha Trang',name:'Cam Ranh',country:'Vietnam',tz:'Asia/Ho_Chi_Minh'},
+  {iata:'DAD',city:'Da Nang',name:'Da Nang',country:'Vietnam',tz:'Asia/Ho_Chi_Minh'},
+  {iata:'DPS',city:'Denpasar',name:'Ngurah Rai (Bali)',country:'Indonesia',tz:'Asia/Makassar'},
+  {iata:'DEL',city:'Delhi',name:'Indira Gandhi',country:'India',tz:'Asia/Kolkata'},
+  {iata:'GOI',city:'Goa',name:'Dabolim',country:'India',tz:'Asia/Kolkata'},
+  {iata:'BOM',city:'Mumbai',name:'Chhatrapati Shivaji',country:'India',tz:'Asia/Kolkata'},
+  {iata:'BEG',city:'Belgrade',name:'Nikola Tesla',country:'Serbia',tz:'Europe/Belgrade'},
+  {iata:'TGD',city:'Podgorica',name:'Podgorica',country:'Montenegro',tz:'Europe/Podgorica'},
+  {iata:'TIV',city:'Tivat',name:'Tivat',country:'Montenegro',tz:'Europe/Podgorica'},
+  {iata:'RAK',city:'Marrakech',name:'Menara',country:'Morocco',tz:'Africa/Casablanca'},
+  {iata:'TUN',city:'Tunis',name:'Carthage',country:'Tunisia',tz:'Africa/Tunis'},
+  {iata:'MIR',city:'Monastir',name:'Habib Bourguiba',country:'Tunisia',tz:'Africa/Tunis'},
+  {iata:'HAV',city:'Havana',name:'Jose Marti',country:'Cuba',tz:'America/Havana'},
+  {iata:'ULN',city:'Ulaanbaatar',name:'Chinggis Khaan',country:'Mongolia',tz:'Asia/Ulaanbaatar'},
+  {iata:'ICN',city:'Seoul',name:'Incheon',country:'South Korea',tz:'Asia/Seoul'},
+  {iata:'HND',city:'Tokyo',name:'Haneda',country:'Japan',tz:'Asia/Tokyo'},
+  {iata:'NRT',city:'Tokyo',name:'Narita',country:'Japan',tz:'Asia/Tokyo'},
+  {iata:'PEK',city:'Beijing',name:'Capital Intl',country:'China',tz:'Asia/Shanghai'},
+  {iata:'PVG',city:'Shanghai',name:'Pudong',country:'China',tz:'Asia/Shanghai'},
+  {iata:'HKG',city:'Hong Kong',name:'Hong Kong Intl',country:'China',tz:'Asia/Hong_Kong'},
+  {iata:'SIN',city:'Singapore',name:'Changi',country:'Singapore',tz:'Asia/Singapore'},
+  {iata:'KUL',city:'Kuala Lumpur',name:'KLIA',country:'Malaysia',tz:'Asia/Kuala_Lumpur'},
+  {iata:'MNL',city:'Manila',name:'Ninoy Aquino',country:'Philippines',tz:'Asia/Manila'},
+  {iata:'CDG',city:'Paris',name:'Charles de Gaulle',country:'France',tz:'Europe/Paris'},
+  {iata:'LHR',city:'London',name:'Heathrow',country:'UK',tz:'Europe/London'},
+  {iata:'FRA',city:'Frankfurt',name:'Frankfurt am Main',country:'Germany',tz:'Europe/Berlin'},
+  {iata:'AMS',city:'Amsterdam',name:'Schiphol',country:'Netherlands',tz:'Europe/Amsterdam'},
+  {iata:'BCN',city:'Barcelona',name:'El Prat',country:'Spain',tz:'Europe/Madrid'},
+  {iata:'MAD',city:'Madrid',name:'Barajas',country:'Spain',tz:'Europe/Madrid'},
+  {iata:'FCO',city:'Rome',name:'Fiumicino',country:'Italy',tz:'Europe/Rome'},
+  {iata:'ATH',city:'Athens',name:'Eleftherios Venizelos',country:'Greece',tz:'Europe/Athens'},
+  {iata:'VIE',city:'Vienna',name:'Vienna Intl',country:'Austria',tz:'Europe/Vienna'},
+  {iata:'PRG',city:'Prague',name:'Vaclav Havel',country:'Czechia',tz:'Europe/Prague'},
+  {iata:'BUD',city:'Budapest',name:'Ferenc Liszt',country:'Hungary',tz:'Europe/Budapest'},
+  {iata:'WAW',city:'Warsaw',name:'Chopin',country:'Poland',tz:'Europe/Warsaw'},
+  {iata:'TLV',city:'Tel Aviv',name:'Ben Gurion',country:'Israel',tz:'Asia/Jerusalem'},
+  {iata:'JNB',city:'Johannesburg',name:'OR Tambo',country:'South Africa',tz:'Africa/Johannesburg'},
+  {iata:'SYD',city:'Sydney',name:'Kingsford Smith',country:'Australia',tz:'Australia/Sydney'},
+  {iata:'JFK',city:'New York',name:'John F Kennedy',country:'USA',tz:'America/New_York'},
+  {iata:'LAX',city:'Los Angeles',name:'Los Angeles Intl',country:'USA',tz:'America/Los_Angeles'},
+  {iata:'YYZ',city:'Toronto',name:'Pearson',country:'Canada',tz:'America/Toronto'},
+  {iata:'GRU',city:'Sao Paulo',name:'Guarulhos',country:'Brazil',tz:'America/Sao_Paulo'}
+];
+let AIRPORTS = FALLBACK_AIRPORTS;
+
+async function loadAirports(){
+  let base = FALLBACK_AIRPORTS;
+  try{
+    const cached = localStorage.getItem('airports_cache_v1');
+    if(cached){
+      base = JSON.parse(cached);
+    } else {
+      const res = await fetch('https://raw.githubusercontent.com/mwgg/Airports/master/airports.json');
+      const data = await res.json();
+      const slim = Object.values(data)
+        .filter(a => a.iata && a.iata.length === 3)
+        .map(a => ({iata:a.iata, city:a.city||'', name:a.name||'', country:a.country||'', tz:a.tz||''}));
+      if(slim.length){
+        base = slim;
+        try{ localStorage.setItem('airports_cache_v1', JSON.stringify(slim)); }catch(e){ /* quota — skip caching, still usable this session */ }
+      }
+    }
+  }catch(e){ /* offline or blocked — keep curated ~100-airport fallback */ }
+  let customs = [];
+  try{ customs = JSON.parse(localStorage.getItem('custom_airports_v1')||'[]'); }catch(e){}
+  AIRPORTS = base.concat(customs);
+}
+
+function searchAirports(q){
+  q = (q||'').trim().toLowerCase();
+  if(!q) return [];
+  return AIRPORTS.filter(a =>
+    a.iata.toLowerCase().startsWith(q) ||
+    (a.city && a.city.toLowerCase().includes(q)) ||
+    (a.name && a.name.toLowerCase().includes(q))
+  ).slice(0,8);
+}
 
 let trips = [];
 let openTripId = null;
+let openBookingKey = null; // `${tripId}:${bookingId}` currently expanded
 let editingTripFor = null;
-let selectedType = 'flight';
+let editingBookingId = null;
+let selectedType = 'transport';
+let selectedSubtype = 'plane';
+let fromAirportObj = null;
+let toAirportObj = null;
 let loaded = false;
 
 async function load(){
   try{
     const raw = localStorage.getItem('marshrut_trips');
     trips = raw ? JSON.parse(raw) : [];
-  }catch(e){
-    trips = [];
-  }
+  }catch(e){ trips = []; }
   loaded = true;
   render();
 }
@@ -445,9 +362,7 @@ async function persist(){
   try{
     localStorage.setItem('marshrut_trips', JSON.stringify(trips));
     storageOK = true;
-  }catch(e){
-    storageOK = false;
-  }
+  }catch(e){ storageOK = false; }
   renderStorageNote();
 }
 function renderStorageNote(){
@@ -456,10 +371,19 @@ function renderStorageNote(){
   el.style.display = storageOK ? 'none' : 'block';
 }
 
-function fmtDate(iso){
+function fmtDateShort(iso){
   if(!iso) return '';
   const d = new Date(iso);
-  return d.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}) + ', ' + d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleDateString('ru-RU',{day:'numeric',month:'short'});
+}
+function fmtTime(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+}
+function fmtDateTime(iso){
+  if(!iso) return '';
+  return fmtDateShort(iso) + ', ' + fmtTime(iso);
 }
 
 function bookingStatus(b){
@@ -469,8 +393,64 @@ function bookingStatus(b){
   if(!start) return {key:'upcoming', label:'Без даты'};
   if(now < start) return {key:'upcoming', label:'Предстоит'};
   if(end && now > end) return {key:'done', label:'Завершено'};
-  if(now >= start && (!end || now <= end)) return {key:'active', label:'Сейчас'};
-  return {key:'done', label:'Завершено'};
+  return {key:'active', label:'Сейчас'};
+}
+
+function flightDuration(b){
+  if(!(b.start && b.end && b.fromAirport && b.fromAirport.tz && b.toAirport && b.toAirport.tz)) return null;
+  try{
+    const DateTime = luxon.DateTime;
+    const dep = DateTime.fromISO(b.start, {zone: b.fromAirport.tz});
+    const arr = DateTime.fromISO(b.end, {zone: b.toAirport.tz});
+    const mins = arr.diff(dep, 'minutes').minutes;
+    if(!isFinite(mins) || mins < 0) return null;
+    return `${Math.floor(mins/60)}ч ${Math.round(mins%60)}м`;
+  }catch(e){ return null; }
+}
+function simpleDuration(b){
+  if(!b.start || !b.end) return null;
+  const ms = new Date(b.end) - new Date(b.start);
+  if(ms <= 0) return null;
+  const mins = Math.round(ms/60000);
+  return `${Math.floor(mins/60)}ч ${mins%60}м`;
+}
+function nightsCount(b){
+  if(!b.start || !b.end) return null;
+  const d1 = new Date(b.start.slice(0,10));
+  const d2 = new Date(b.end.slice(0,10));
+  const diff = Math.round((d2-d1)/86400000);
+  return diff > 0 ? diff : null;
+}
+
+function bookingIcon(b){
+  if(b.type === 'transport') return ICONS[b.subtype] || ICONS.plane;
+  return ICONS[b.type];
+}
+function bookingTitle(b){
+  if(b.type === 'stay') return b.hotelName || 'Проживание';
+  if(b.type === 'transport') return b.title || SUBTYPE_LABELS[b.subtype] || 'Транспорт';
+  return b.title || TYPE_LABELS[b.type];
+}
+function bookingRoute(b){
+  if(b.type === 'transport'){
+    const from = b.fromAirport ? b.fromAirport.iata : (b.fromCity || '');
+    const to = b.toAirport ? b.toAirport.iata : (b.toCity || '');
+    if(from || to) return `${from || '—'} → ${to || '—'}`;
+    return '';
+  }
+  if(b.type === 'stay') return b.hotelCity || '';
+  return b.excCity || '';
+}
+function bookingDurationBadge(b){
+  if(b.type === 'transport'){
+    const d = b.subtype === 'plane' ? flightDuration(b) : simpleDuration(b);
+    return d ? `<span class="card-duration">${d}</span>` : '';
+  }
+  if(b.type === 'stay'){
+    const n = nightsCount(b);
+    return n ? `<span class="card-duration">${n} ноч.</span>` : '';
+  }
+  return '';
 }
 
 function tripRange(trip){
@@ -479,7 +459,13 @@ function tripRange(trip){
   if(!dates.length) return trip.bookings.length + ' поз.';
   const min = new Date(Math.min(...dates));
   const max = new Date(Math.max(...dates));
-  return min.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}) + ' — ' + max.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}) + ' · ' + trip.bookings.length + ' поз.';
+  return fmtDateShort(min) + ' — ' + fmtDateShort(max) + ' · ' + trip.bookings.length + ' поз.';
+}
+
+function esc(s){
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
 }
 
 function render(){
@@ -528,21 +514,30 @@ function render(){
       const sorted = [...trip.bookings].sort((a,b)=> (a.start||'') < (b.start||'') ? -1 : 1);
       sorted.forEach(b=>{
         const st = bookingStatus(b);
+        const key = trip.id + ':' + b.id;
+        const detailOpen = openBookingKey === key;
         html += `
-          <div class="stub">
-            <div class="stub-main">
-              <div class="stub-type-row">
-                ${ICONS[b.type]}
-                <span class="stub-source">${esc(b.source || TYPE_LABELS[b.type])}</span>
+          <div class="card">
+            <div class="card-head" onclick="toggleBooking('${key}')">
+              <div class="card-icon">${bookingIcon(b)}</div>
+              <div class="card-main">
+                <div class="card-title-row">
+                  <div class="card-title">${esc(bookingTitle(b))}</div>
+                  <span class="status-pill status-${st.key}">${st.label}</span>
+                </div>
+                ${bookingRoute(b) ? `<div class="card-route">${esc(bookingRoute(b))}</div>` : ''}
+                <div class="card-time">${b.start ? fmtDateTime(b.start) : ''}${b.end ? ' → ' + fmtDateTime(b.end) : ''}${bookingDurationBadge(b)}</div>
+                ${b.code ? `<div class="card-code">№ ${esc(b.code)}</div>` : ''}
               </div>
-              <div class="stub-title">${esc(b.title)}</div>
-              ${b.start ? `<div class="stub-dates">${fmtDate(b.start)}${b.end ? ' → ' + fmtDate(b.end) : ''}</div>` : ''}
-              ${b.code ? `<div class="stub-code">№ ${esc(b.code)}</div>` : ''}
-              ${b.notes ? `<div class="stub-notes">${esc(b.notes)}</div>` : ''}
             </div>
-            <div class="stub-stub">
-              <span class="status-pill status-${st.key}">${st.label}</span>
-              <button class="del-btn" onclick="deleteBooking('${trip.id}','${b.id}')">Удалить</button>
+            <div class="card-detail ${detailOpen?'open':''}">
+              ${b.source ? `<div class="detail-row"><b>Источник:</b> ${esc(b.source)}</div>` : ''}
+              ${b.link ? `<div class="detail-row"><b>Ссылка:</b> <a href="${esc(b.link)}" target="_blank" rel="noopener">${esc(b.link)}</a></div>` : ''}
+              ${b.notes ? `<div class="detail-row"><b>Заметка:</b> ${esc(b.notes)}</div>` : ''}
+              <div class="detail-actions">
+                <button class="mini-btn" onclick="event.stopPropagation(); openBookingSheet('${trip.id}','${b.id}')">${ICONS.edit} Изменить</button>
+                <button class="mini-btn danger" onclick="event.stopPropagation(); deleteBooking('${trip.id}','${b.id}')">${ICONS.trash} Удалить</button>
+              </div>
             </div>
           </div>
         `;
@@ -562,14 +557,12 @@ function render(){
   app.innerHTML = html;
 }
 
-function esc(s){
-  const d = document.createElement('div');
-  d.textContent = s || '';
-  return d.innerHTML;
-}
-
 function toggleTrip(id){
   openTripId = openTripId === id ? null : id;
+  render();
+}
+function toggleBooking(key){
+  openBookingKey = openBookingKey === key ? null : key;
   render();
 }
 
@@ -578,9 +571,7 @@ function openTripSheet(){
   document.getElementById('tripDestInput').value = '';
   document.getElementById('tripOverlay').classList.add('open');
 }
-function closeTripSheet(){
-  document.getElementById('tripOverlay').classList.remove('open');
-}
+function closeTripSheet(){ document.getElementById('tripOverlay').classList.remove('open'); }
 async function saveTrip(){
   const name = document.getElementById('tripNameInput').value.trim();
   if(!name) return;
@@ -598,60 +589,226 @@ async function deleteTrip(id){
   await persist();
 }
 
-function openBookingSheet(tripId){
-  editingTripFor = tripId;
-  selectedType = 'flight';
-  document.getElementById('bTitle').value = '';
-  document.getElementById('bSource').value = '';
-  document.getElementById('bStart').value = '';
-  document.getElementById('bEnd').value = '';
-  document.getElementById('bCode').value = '';
-  document.getElementById('bNotes').value = '';
-  renderTypeRow();
-  document.getElementById('bookingOverlay').classList.add('open');
-}
-function closeBookingSheet(){
-  document.getElementById('bookingOverlay').classList.remove('open');
-}
 function renderTypeRow(){
   const row = document.getElementById('typeRow');
   row.innerHTML = Object.keys(TYPE_LABELS).map(k=>
     `<div class="type-opt ${selectedType===k?'sel':''}" onclick="pickType('${k}')">${TYPE_LABELS[k]}</div>`
   ).join('');
+  document.getElementById('subtypeField').style.display = selectedType === 'transport' ? 'block' : 'none';
+  if(selectedType === 'transport') renderSubtypeRow();
+  renderDynamicFields();
 }
-function pickType(k){
-  selectedType = k;
+function renderSubtypeRow(){
+  const row = document.getElementById('subtypeRow');
+  row.innerHTML = Object.keys(SUBTYPE_LABELS).map(k=>
+    `<div class="type-opt ${selectedSubtype===k?'sel':''}" onclick="pickSubtype('${k}')">${SUBTYPE_LABELS[k]}</div>`
+  ).join('');
+}
+function pickType(k){ selectedType = k; renderTypeRow(); }
+function pickSubtype(k){ selectedSubtype = k; renderTypeRow(); }
+
+function renderDynamicFields(){
+  const el = document.getElementById('dynamicFields');
+  if(selectedType === 'transport' && selectedSubtype === 'plane'){
+    el.innerHTML = `
+      <div class="field"><label>Номер рейса</label><input id="bTitle" placeholder="SU 1210"></div>
+      <div class="field airport-wrap">
+        <label>Откуда (аэропорт)</label>
+        <input id="bFromAirport" autocomplete="off" placeholder="Город или код, напр. SVO">
+        <div class="airport-results" id="fromResults"></div>
+        <div class="add-custom-airport" onclick="toggleCustomAirport('from')" style="font-size:11.5px;color:var(--teal);cursor:pointer;margin-top:5px;">+ Не нашли? Добавить свой аэропорт</div>
+        <div id="fromCustomForm" style="display:none;margin-top:6px;">
+          <input id="fromCustomCity" placeholder="Город" style="margin-bottom:6px;width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card);">
+          <input id="fromCustomCode" placeholder="Код (если знаете, необязательно)" style="margin-bottom:6px;width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card);">
+          <button type="button" class="mini-btn" onclick="addCustomAirport('from')">Добавить в базу</button>
+        </div>
+      </div>
+      <div class="field airport-wrap">
+        <label>Куда (аэропорт)</label>
+        <input id="bToAirport" autocomplete="off" placeholder="Город или код">
+        <div class="airport-results" id="toResults"></div>
+        <div class="add-custom-airport" onclick="toggleCustomAirport('to')" style="font-size:11.5px;color:var(--teal);cursor:pointer;margin-top:5px;">+ Не нашли? Добавить свой аэропорт</div>
+        <div id="toCustomForm" style="display:none;margin-top:6px;">
+          <input id="toCustomCity" placeholder="Город" style="margin-bottom:6px;width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card);">
+          <input id="toCustomCode" placeholder="Код (если знаете, необязательно)" style="margin-bottom:6px;width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card);">
+          <button type="button" class="mini-btn" onclick="addCustomAirport('to')">Добавить в базу</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('bFromAirport').oninput = (e)=>renderAirportResults('from', e.target.value);
+    document.getElementById('bToAirport').oninput = (e)=>renderAirportResults('to', e.target.value);
+    if(fromAirportObj) document.getElementById('bFromAirport').value = `${fromAirportObj.iata} — ${fromAirportObj.city}`;
+    if(toAirportObj) document.getElementById('bToAirport').value = `${toAirportObj.iata} — ${toAirportObj.city}`;
+  } else if(selectedType === 'transport'){
+    el.innerHTML = `
+      <div class="field"><label>Номер рейса/поезда (если есть)</label><input id="bTitle" placeholder="Например, №042А"></div>
+      <div class="field"><label>Откуда (город)</label><input id="bFromCity" placeholder="Город отправления"></div>
+      <div class="field"><label>Куда (город)</label><input id="bToCity" placeholder="Город прибытия"></div>
+    `;
+  } else if(selectedType === 'stay'){
+    el.innerHTML = `
+      <div class="field"><label>Город</label><input id="bHotelCity" placeholder="Тбилиси"></div>
+      <div class="field"><label>Название отеля</label><input id="bHotelName" placeholder="Marriott, Гестхаус..."></div>
+    `;
+  } else if(selectedType === 'excursion'){
+    el.innerHTML = `
+      <div class="field"><label>Название</label><input id="bTitle" placeholder="Экскурсия по старому городу"></div>
+      <div class="field"><label>Город (если отличается от отеля)</label><input id="bExcCity" placeholder="Необязательно"></div>
+    `;
+  } else {
+    el.innerHTML = `<div class="field"><label>Название</label><input id="bTitle" placeholder="Что это"></div>`;
+  }
+}
+
+function renderAirportResults(which, q){
+  const box = document.getElementById(which==='from'?'fromResults':'toResults');
+  const matches = searchAirports(q);
+  if(!matches.length){ box.innerHTML=''; box.style.display='none'; return; }
+  box.style.display='block';
+  box.innerHTML = matches.map(a=>
+    `<div class="airport-opt" onclick="pickAirport('${which}','${a.iata}')"><span class="code">${a.iata}</span> — ${esc(a.city)} <span class="city">(${esc(a.name)}, ${esc(a.country)})</span></div>`
+  ).join('');
+}
+function pickAirport(which, iata){
+  const a = AIRPORTS.find(x=>x.iata===iata);
+  if(!a) return;
+  if(which==='from'){
+    fromAirportObj = a;
+    document.getElementById('bFromAirport').value = `${a.iata} — ${a.city}`;
+    document.getElementById('fromResults').style.display='none';
+  } else {
+    toAirportObj = a;
+    document.getElementById('bToAirport').value = `${a.iata} — ${a.city}`;
+    document.getElementById('toResults').style.display='none';
+  }
+}
+function toggleCustomAirport(which){
+  const form = document.getElementById(which+'CustomForm');
+  if(!form) return;
+  form.style.display = form.style.display==='none' ? 'block' : 'none';
+}
+function addCustomAirport(which){
+  const cityInput = document.getElementById(which+'CustomCity');
+  const codeInput = document.getElementById(which+'CustomCode');
+  const city = cityInput.value.trim();
+  if(!city) return;
+  let code = codeInput.value.trim().toUpperCase();
+  if(!code) code = city.replace(/[^A-Za-zА-Яа-я]/g,'').slice(0,3).toUpperCase() || 'XXX';
+  // tz is intentionally left unknown — this airport won't be used for
+  // timezone-aware flight-duration math until someone confirms its tz
+  const airport = {iata: code, city, name: city, country:'', tz:null, custom:true};
+  let customs = [];
+  try{ customs = JSON.parse(localStorage.getItem('custom_airports_v1')||'[]'); }catch(e){}
+  customs.push(airport);
+  try{ localStorage.setItem('custom_airports_v1', JSON.stringify(customs)); }catch(e){}
+  AIRPORTS.push(airport);
+  if(which==='from'){
+    fromAirportObj = airport;
+    document.getElementById('bFromAirport').value = `${airport.iata} — ${airport.city}`;
+  } else {
+    toAirportObj = airport;
+    document.getElementById('bToAirport').value = `${airport.iata} — ${airport.city}`;
+  }
+  document.getElementById(which+'CustomForm').style.display='none';
+  cityInput.value=''; codeInput.value='';
+}
+
+function openBookingSheet(tripId, bookingId){
+  editingTripFor = tripId;
+  editingBookingId = bookingId || null;
+  fromAirportObj = null;
+  toAirportObj = null;
+
+  const trip = trips.find(t=>t.id===tripId);
+  const existing = bookingId ? trip.bookings.find(b=>b.id===bookingId) : null;
+
+  selectedType = existing ? existing.type : 'transport';
+  selectedSubtype = existing && existing.subtype ? existing.subtype : 'plane';
+  if(existing && existing.fromAirport) fromAirportObj = existing.fromAirport;
+  if(existing && existing.toAirport) toAirportObj = existing.toAirport;
+
+  document.getElementById('bookingSheetTitle').textContent = existing ? 'Изменить бронирование' : 'Добавить бронирование';
   renderTypeRow();
+
+  // prefill after dynamic fields exist
+  setTimeout(()=>{
+    if(existing){
+      if(document.getElementById('bTitle')) document.getElementById('bTitle').value = existing.title || '';
+      if(document.getElementById('bFromCity')) document.getElementById('bFromCity').value = existing.fromCity || '';
+      if(document.getElementById('bToCity')) document.getElementById('bToCity').value = existing.toCity || '';
+      if(document.getElementById('bHotelCity')) document.getElementById('bHotelCity').value = existing.hotelCity || '';
+      if(document.getElementById('bHotelName')) document.getElementById('bHotelName').value = existing.hotelName || '';
+      if(document.getElementById('bExcCity')) document.getElementById('bExcCity').value = existing.excCity || '';
+    }
+    document.getElementById('bSource').value = existing ? (existing.source||'') : '';
+    document.getElementById('bStart').value = existing ? (existing.start||'') : '';
+    document.getElementById('bEnd').value = existing ? (existing.end||'') : '';
+    document.getElementById('bCode').value = existing ? (existing.code||'') : '';
+    document.getElementById('bLink').value = existing ? (existing.link||'') : '';
+    document.getElementById('bNotes').value = existing ? (existing.notes||'') : '';
+  }, 0);
+
+  if(!existing){
+    document.getElementById('bSource').value = '';
+    document.getElementById('bStart').value = '';
+    document.getElementById('bEnd').value = '';
+    document.getElementById('bCode').value = '';
+    document.getElementById('bLink').value = '';
+    document.getElementById('bNotes').value = '';
+  }
+
+  document.getElementById('bookingOverlay').classList.add('open');
 }
+function closeBookingSheet(){ document.getElementById('bookingOverlay').classList.remove('open'); }
+
 async function saveBooking(){
-  const title = document.getElementById('bTitle').value.trim();
-  if(!title || !editingTripFor) return;
+  if(!editingTripFor) return;
   const trip = trips.find(t=>t.id===editingTripFor);
   if(!trip) return;
-  trip.bookings.push({
-    id: 'b'+Date.now(),
+
+  const data = {
     type: selectedType,
-    title,
+    subtype: selectedType === 'transport' ? selectedSubtype : undefined,
+    title: document.getElementById('bTitle') ? document.getElementById('bTitle').value.trim() : '',
+    fromCity: document.getElementById('bFromCity') ? document.getElementById('bFromCity').value.trim() : '',
+    toCity: document.getElementById('bToCity') ? document.getElementById('bToCity').value.trim() : '',
+    fromAirport: (selectedType==='transport' && selectedSubtype==='plane') ? fromAirportObj : null,
+    toAirport: (selectedType==='transport' && selectedSubtype==='plane') ? toAirportObj : null,
+    hotelCity: document.getElementById('bHotelCity') ? document.getElementById('bHotelCity').value.trim() : '',
+    hotelName: document.getElementById('bHotelName') ? document.getElementById('bHotelName').value.trim() : '',
+    excCity: document.getElementById('bExcCity') ? document.getElementById('bExcCity').value.trim() : '',
     source: document.getElementById('bSource').value.trim(),
     start: document.getElementById('bStart').value,
     end: document.getElementById('bEnd').value,
     code: document.getElementById('bCode').value.trim(),
+    link: document.getElementById('bLink').value.trim(),
     notes: document.getElementById('bNotes').value.trim()
-  });
+  };
+
+  if(editingBookingId){
+    const idx = trip.bookings.findIndex(b=>b.id===editingBookingId);
+    if(idx > -1) trip.bookings[idx] = {...trip.bookings[idx], ...data};
+  } else {
+    trip.bookings.push({id:'b'+Date.now(), ...data});
+  }
+
   closeBookingSheet();
   render();
   await persist();
 }
+
 async function deleteBooking(tripId, bookingId){
   const trip = trips.find(t=>t.id===tripId);
   if(!trip) return;
   trip.bookings = trip.bookings.filter(b=>b.id!==bookingId);
+  if(openBookingKey === tripId+':'+bookingId) openBookingKey = null;
   render();
   await persist();
 }
 
 function triggerTicketUpload(tripId){
   editingTripFor = tripId;
+  editingBookingId = null;
   document.getElementById('ticketFile').click();
 }
 async function handleTicketFile(e){
@@ -659,17 +816,13 @@ async function handleTicketFile(e){
   if(!file || !editingTripFor) return;
   const trip = trips.find(t=>t.id===editingTripFor);
   if(!trip) return;
-  // Demo stub: in production this file is sent to a backend that runs
-  // barcode decoding (boarding passes) or an LLM parse (hotels/other PDFs)
-  // and returns structured fields. Here we just record that a file came in.
   trip.bookings.push({
     id: 'b'+Date.now(),
-    type: 'flight',
+    type: 'transport',
+    subtype: 'plane',
     title: file.name.replace(/\.[^.]+$/, ''),
     source: 'Распознано из файла (демо)',
-    start: '',
-    end: '',
-    code: '',
+    start: '', end: '', code: '', link: '',
     notes: 'Загружено: ' + file.name + ' — в демо-версии данные не извлекаются автоматически'
   });
   e.target.value = '';
@@ -693,7 +846,7 @@ function initTelegram(){
   }catch(e){ /* not running inside Telegram — keep default theme */ }
 }
 initTelegram();
-
+loadAirports();
 load();
 setInterval(render, 60000);
 </script>
