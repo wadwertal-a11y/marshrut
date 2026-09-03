@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Маршрут</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    --paper:#FAF7F0;
+    --card:#FFFFFF;
+    --ink:#21262E;
+    --ink-soft:#5B6472;
+    --border:#E6E0D2;
+    --teal:#1F6F78;
+    --teal-dark:#164F56;
+    --gold:#B8892F;
+    --sage:#4B7857;
+    --slate:#9AA2AC;
+    --danger:#B14B3D;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{
+    max-width:640px;
+    margin:0 auto;
+    padding:20px 16px 100px;
+  }
+  h1,h2,h3{
+    font-family:'Fraunces',serif;
+    margin:0;
+  }
+  .top{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:18px;
+  }
+  .top h1{
+    font-size:26px;
+    font-weight:600;
+    letter-spacing:-0.01em;
+  }
+  .top .sub{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-top:2px;
+  }
+  .new-trip-btn{
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    border-radius:10px;
+    padding:10px 14px;
+    font-size:13.5px;
+    font-weight:500;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+    white-space:nowrap;
+  }
+  .new-trip-btn:active{transform:scale(0.97);}
+
+  .empty{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--ink-soft);
+  }
+  .empty h3{font-size:19px;color:var(--ink);margin-bottom:8px;font-weight:600;}
+  .empty p{font-size:14px;line-height:1.5;margin:0 0 18px;}
+
+  .trip-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    margin-bottom:16px;
+    overflow:hidden;
+  }
+  .trip-head{
+    padding:16px 18px;
+    cursor:pointer;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+  }
+  .trip-head-left{min-width:0;}
+  .trip-name{font-size:18px;font-weight:600;}
+  .trip-dest{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+  .trip-meta{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    margin-top:6px;
+    font-family:'IBM Plex Mono',monospace;
+    letter-spacing:0.01em;
+  }
+  .chevron{
+    flex-shrink:0;
+    transition:transform 0.2s ease;
+    color:var(--ink-soft);
+  }
+  .chevron.open{transform:rotate(180deg);}
+
+  .bookings{
+    border-top:1px solid var(--border);
+    padding:14px 14px 16px;
+    display:none;
+  }
+  .bookings.open{display:block;}
+
+  .stub{
+    display:flex;
+    background:var(--paper);
+    border:1px solid var(--border);
+    border-radius:10px;
+    margin-bottom:10px;
+    position:relative;
+    overflow:hidden;
+  }
+  .stub-main{
+    flex:1;
+    padding:12px 12px 12px 14px;
+    min-width:0;
+  }
+  .stub-type-row{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    margin-bottom:5px;
+  }
+  .stub-icon{
+    width:15px;height:15px;flex-shrink:0;color:var(--teal);
+  }
+  .stub-source{
+    font-size:10.5px;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+  }
+  .stub-title{
+    font-size:14.5px;
+    font-weight:600;
+    line-height:1.3;
+  }
+  .stub-dates{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:4px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .stub-code{
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-top:3px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .stub-notes{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:5px;
+    font-style:italic;
+    line-height:1.4;
+  }
+  .stub-stub{
+    width:88px;
+    flex-shrink:0;
+    border-left:1px dashed var(--border);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:8px 6px;
+    text-align:center;
+  }
+  .stub-stub::before, .stub-stub::after{
+    content:'';
+    position:absolute;
+    width:14px;height:14px;
+    background:var(--paper);
+    border-radius:50%;
+    right:80px;
+  }
+  .stub-stub::before{top:-7px;}
+  .stub-stub::after{bottom:-7px;}
+  .status-pill{
+    font-size:10px;
+    font-weight:600;
+    padding:3px 8px;
+    border-radius:20px;
+    white-space:nowrap;
+    letter-spacing:0.01em;
+  }
+  .status-upcoming{background:#F3E7CB;color:var(--gold);}
+  .status-active{background:#DCEADD;color:var(--sage);}
+  .status-done{background:#E9EAEC;color:var(--slate);}
+  .del-btn{
+    background:none;
+    border:none;
+    color:var(--ink-soft);
+    font-size:10.5px;
+    cursor:pointer;
+    padding:2px;
+    font-family:'Inter',sans-serif;
+  }
+  .del-btn:hover{color:var(--danger);}
+
+  .add-booking-btn{
+    width:100%;
+    background:none;
+    border:1px dashed var(--border);
+    border-radius:10px;
+    padding:10px;
+    color:var(--teal);
+    font-size:13px;
+    font-weight:500;
+    cursor:pointer;
+    margin-top:2px;
+    font-family:'Inter',sans-serif;
+  }
+  .add-ticket-btn{
+    width:100%;
+    background:var(--teal);
+    border:none;
+    border-radius:10px;
+    padding:10px;
+    color:#fff;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    margin-top:8px;
+    font-family:'Inter',sans-serif;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+  }
+  .pro-badge{
+    font-size:9.5px;
+    font-weight:700;
+    background:rgba(255,255,255,0.25);
+    padding:2px 6px;
+    border-radius:6px;
+    letter-spacing:0.03em;
+  }
+  .parse-hint{
+    font-size:11px;
+    color:var(--ink-soft);
+    text-align:center;
+    margin-top:6px;
+    line-height:1.4;
+  }
+
+  .del-trip{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:6px 0 0;
+    font-family:'Inter',sans-serif;
+  }
+  .del-trip:hover{color:var(--danger);}
+
+  /* Modal */
+  .overlay{
+    position:fixed;inset:0;
+    background:rgba(33,38,46,0.45);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:50;
+  }
+  .overlay.open{display:flex;}
+  .sheet{
+    background:var(--card);
+    width:100%;
+    max-width:640px;
+    border-radius:18px 18px 0 0;
+    padding:20px 18px 24px;
+    max-height:88vh;
+    overflow-y:auto;
+  }
+  .sheet h3{font-size:17px;font-weight:600;margin-bottom:14px;}
+  .field{margin-bottom:12px;}
+  .field label{
+    display:block;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    margin-bottom:5px;
+    font-weight:500;
+  }
+  .field input, .field select, .field textarea{
+    width:100%;
+    padding:10px 11px;
+    border:1px solid var(--border);
+    border-radius:9px;
+    font-size:14.5px;
+    font-family:'Inter',sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  .field textarea{resize:none;min-height:50px;}
+  .type-row{display:flex;gap:6px;}
+  .type-opt{
+    flex:1;
+    padding:9px 4px;
+    border:1px solid var(--border);
+    border-radius:9px;
+    text-align:center;
+    font-size:12px;
+    cursor:pointer;
+    color:var(--ink-soft);
+  }
+  .type-opt.sel{
+    border-color:var(--teal);
+    background:#EAF3F3;
+    color:var(--teal-dark);
+    font-weight:600;
+  }
+  .row2{display:flex;gap:10px;}
+  .row2 .field{flex:1;}
+  .sheet-actions{display:flex;gap:10px;margin-top:16px;}
+  .btn{
+    flex:1;
+    padding:12px;
+    border-radius:10px;
+    border:none;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .btn-primary{background:var(--teal);color:#fff;}
+  .btn-ghost{background:none;color:var(--ink-soft);border:1px solid var(--border);}
+  .note{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    line-height:1.5;
+    background:#F2EEE2;
+    border-radius:10px;
+    padding:10px 12px;
+    margin-bottom:16px;
+  }
+</style>
+</head>
+<body>
+<div id="storageNote" style="display:none;max-width:640px;margin:10px auto 0;padding:8px 14px;font-size:12px;color:#8A6A2E;background:#F7EEDA;border-radius:8px;text-align:center;font-family:'Inter',sans-serif;">Изменения видны в этой сессии, но пока не сохраняются между визитами</div>
+<div class="app" id="app"></div>
+
+<div class="overlay" id="tripOverlay">
+  <div class="sheet">
+    <h3>Новая поездка</h3>
+    <div class="field">
+      <label>Название</label>
+      <input id="tripNameInput" placeholder="Например: Грузия, октябрь">
+    </div>
+    <div class="field">
+      <label>Направление</label>
+      <input id="tripDestInput" placeholder="Тбилиси, Батуми">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" onclick="closeTripSheet()">Отмена</button>
+      <button class="btn btn-primary" onclick="saveTrip()">Создать</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="bookingOverlay">
+  <div class="sheet">
+    <h3>Добавить бронирование</h3>
+    <div class="field">
+      <label>Тип</label>
+      <div class="type-row" id="typeRow"></div>
+    </div>
+    <div class="field">
+      <label>Название</label>
+      <input id="bTitle" placeholder="Рейс AB123 / Отель Marriott">
+    </div>
+    <div class="field">
+      <label>Источник (где куплено)</label>
+      <input id="bSource" placeholder="Booking.com, сайт авиакомпании...">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Начало</label>
+        <input id="bStart" type="datetime-local">
+      </div>
+      <div class="field">
+        <label>Окончание (если есть)</label>
+        <input id="bEnd" type="datetime-local">
+      </div>
+    </div>
+    <div class="field">
+      <label>Номер брони / код</label>
+      <input id="bCode" placeholder="PNR, номер подтверждения">
+    </div>
+    <div class="field">
+      <label>Заметка</label>
+      <textarea id="bNotes" placeholder="Что важно не забыть"></textarea>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" onclick="closeBookingSheet()">Отмена</button>
+      <button class="btn btn-primary" onclick="saveBooking()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ICONS = {
+  flight: '<svg class="stub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-1 .1-1.3.5l-.5.6c-.4.5-.2 1.2.3 1.5L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.4 5.8c.3.5 1 .7 1.5.3l.6-.5c.4-.3.6-.8.5-1.3Z"/></svg>',
+  hotel: '<svg class="stub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V7a2 2 0 0 1 2-2h6v16"/><path d="M13 21V11a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v10"/><path d="M3 21h18"/><circle cx="9" cy="10" r=".5"/><path d="M7 21v-4a2 2 0 0 1 4 0v4"/></svg>',
+  excursion: '<svg class="stub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 19.4 15 4.5 9.6 17.7 6.5 13 3 19.4"/><circle cx="12" cy="12" r="10"/></svg>',
+  other: '<svg class="stub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2Z"/></svg>'
+};
+const TYPE_LABELS = {flight:'Перелёт', hotel:'Отель', excursion:'Экскурсия', other:'Другое'};
+
+let trips = [];
+let openTripId = null;
+let editingTripFor = null;
+let selectedType = 'flight';
+let loaded = false;
+
+async function load(){
+  try{
+    const raw = localStorage.getItem('marshrut_trips');
+    trips = raw ? JSON.parse(raw) : [];
+  }catch(e){
+    trips = [];
+  }
+  loaded = true;
+  render();
+}
+window.addEventListener('unhandledrejection', e => { e.preventDefault(); });
+
+let storageOK = true;
+async function persist(){
+  try{
+    localStorage.setItem('marshrut_trips', JSON.stringify(trips));
+    storageOK = true;
+  }catch(e){
+    storageOK = false;
+  }
+  renderStorageNote();
+}
+function renderStorageNote(){
+  const el = document.getElementById('storageNote');
+  if(!el) return;
+  el.style.display = storageOK ? 'none' : 'block';
+}
+
+function fmtDate(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}) + ', ' + d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+}
+
+function bookingStatus(b){
+  const now = new Date();
+  const start = b.start ? new Date(b.start) : null;
+  const end = b.end ? new Date(b.end) : start;
+  if(!start) return {key:'upcoming', label:'Без даты'};
+  if(now < start) return {key:'upcoming', label:'Предстоит'};
+  if(end && now > end) return {key:'done', label:'Завершено'};
+  if(now >= start && (!end || now <= end)) return {key:'active', label:'Сейчас'};
+  return {key:'done', label:'Завершено'};
+}
+
+function tripRange(trip){
+  if(!trip.bookings.length) return 'Пока нет бронирований';
+  const dates = trip.bookings.map(b=>b.start).filter(Boolean).map(d=>new Date(d));
+  if(!dates.length) return trip.bookings.length + ' поз.';
+  const min = new Date(Math.min(...dates));
+  const max = new Date(Math.max(...dates));
+  return min.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}) + ' — ' + max.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}) + ' · ' + trip.bookings.length + ' поз.';
+}
+
+function render(){
+  const app = document.getElementById('app');
+  if(!loaded){ app.innerHTML=''; return; }
+
+  let html = `
+    <div class="top">
+      <div>
+        <h1>Маршрут</h1>
+        <div class="sub">Все брони — в одном месте</div>
+      </div>
+      <button class="new-trip-btn" onclick="openTripSheet()">+ Поездка</button>
+    </div>
+  `;
+
+  if(trips.length === 0){
+    html += `
+      <div class="empty">
+        <h3>Пока пусто</h3>
+        <p>Создайте поездку и добавляйте в неё билеты, отели и экскурсии — с любых сайтов, где вы их покупали.</p>
+        <button class="new-trip-btn" onclick="openTripSheet()">Создать первую поездку</button>
+      </div>
+    `;
+  } else {
+    trips.sort((a,b)=>{
+      const da = a.bookings.map(x=>x.start).filter(Boolean).sort()[0] || '9999';
+      const db = b.bookings.map(x=>x.start).filter(Boolean).sort()[0] || '9999';
+      return da < db ? -1 : 1;
+    });
+
+    trips.forEach(trip=>{
+      const isOpen = openTripId === trip.id;
+      html += `<div class="trip-card">
+        <div class="trip-head" onclick="toggleTrip('${trip.id}')">
+          <div class="trip-head-left">
+            <div class="trip-name">${esc(trip.name)}</div>
+            ${trip.dest ? `<div class="trip-dest">${esc(trip.dest)}</div>` : ''}
+            <div class="trip-meta">${tripRange(trip)}</div>
+          </div>
+          <svg class="chevron ${isOpen?'open':''}" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="bookings ${isOpen?'open':''}">
+      `;
+
+      const sorted = [...trip.bookings].sort((a,b)=> (a.start||'') < (b.start||'') ? -1 : 1);
+      sorted.forEach(b=>{
+        const st = bookingStatus(b);
+        html += `
+          <div class="stub">
+            <div class="stub-main">
+              <div class="stub-type-row">
+                ${ICONS[b.type]}
+                <span class="stub-source">${esc(b.source || TYPE_LABELS[b.type])}</span>
+              </div>
+              <div class="stub-title">${esc(b.title)}</div>
+              ${b.start ? `<div class="stub-dates">${fmtDate(b.start)}${b.end ? ' → ' + fmtDate(b.end) : ''}</div>` : ''}
+              ${b.code ? `<div class="stub-code">№ ${esc(b.code)}</div>` : ''}
+              ${b.notes ? `<div class="stub-notes">${esc(b.notes)}</div>` : ''}
+            </div>
+            <div class="stub-stub">
+              <span class="status-pill status-${st.key}">${st.label}</span>
+              <button class="del-btn" onclick="deleteBooking('${trip.id}','${b.id}')">Удалить</button>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `
+          <button class="add-booking-btn" onclick="openBookingSheet('${trip.id}')">+ Добавить бронирование вручную</button>
+          <button class="add-ticket-btn" onclick="triggerTicketUpload('${trip.id}')">📎 Прислать билет / PDF <span class="pro-badge">PRO</span></button>
+          <input type="file" id="ticketFile" accept="image/*,.pdf" style="display:none" onchange="handleTicketFile(event)">
+          <div class="parse-hint">Разбор фото и PDF — демо-версия интерфейса. В боевой версии данные распознаёт ИИ на сервере.</div>
+          <button class="del-trip" onclick="deleteTrip('${trip.id}')">Удалить поездку</button>
+        </div>
+      </div>`;
+    });
+  }
+
+  app.innerHTML = html;
+}
+
+function esc(s){
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+function toggleTrip(id){
+  openTripId = openTripId === id ? null : id;
+  render();
+}
+
+function openTripSheet(){
+  document.getElementById('tripNameInput').value = '';
+  document.getElementById('tripDestInput').value = '';
+  document.getElementById('tripOverlay').classList.add('open');
+}
+function closeTripSheet(){
+  document.getElementById('tripOverlay').classList.remove('open');
+}
+async function saveTrip(){
+  const name = document.getElementById('tripNameInput').value.trim();
+  if(!name) return;
+  const dest = document.getElementById('tripDestInput').value.trim();
+  const trip = {id: 't'+Date.now(), name, dest, bookings: []};
+  trips.push(trip);
+  openTripId = trip.id;
+  closeTripSheet();
+  render();
+  await persist();
+}
+async function deleteTrip(id){
+  trips = trips.filter(t=>t.id!==id);
+  render();
+  await persist();
+}
+
+function openBookingSheet(tripId){
+  editingTripFor = tripId;
+  selectedType = 'flight';
+  document.getElementById('bTitle').value = '';
+  document.getElementById('bSource').value = '';
+  document.getElementById('bStart').value = '';
+  document.getElementById('bEnd').value = '';
+  document.getElementById('bCode').value = '';
+  document.getElementById('bNotes').value = '';
+  renderTypeRow();
+  document.getElementById('bookingOverlay').classList.add('open');
+}
+function closeBookingSheet(){
+  document.getElementById('bookingOverlay').classList.remove('open');
+}
+function renderTypeRow(){
+  const row = document.getElementById('typeRow');
+  row.innerHTML = Object.keys(TYPE_LABELS).map(k=>
+    `<div class="type-opt ${selectedType===k?'sel':''}" onclick="pickType('${k}')">${TYPE_LABELS[k]}</div>`
+  ).join('');
+}
+function pickType(k){
+  selectedType = k;
+  renderTypeRow();
+}
+async function saveBooking(){
+  const title = document.getElementById('bTitle').value.trim();
+  if(!title || !editingTripFor) return;
+  const trip = trips.find(t=>t.id===editingTripFor);
+  if(!trip) return;
+  trip.bookings.push({
+    id: 'b'+Date.now(),
+    type: selectedType,
+    title,
+    source: document.getElementById('bSource').value.trim(),
+    start: document.getElementById('bStart').value,
+    end: document.getElementById('bEnd').value,
+    code: document.getElementById('bCode').value.trim(),
+    notes: document.getElementById('bNotes').value.trim()
+  });
+  closeBookingSheet();
+  render();
+  await persist();
+}
+async function deleteBooking(tripId, bookingId){
+  const trip = trips.find(t=>t.id===tripId);
+  if(!trip) return;
+  trip.bookings = trip.bookings.filter(b=>b.id!==bookingId);
+  render();
+  await persist();
+}
+
+function triggerTicketUpload(tripId){
+  editingTripFor = tripId;
+  document.getElementById('ticketFile').click();
+}
+async function handleTicketFile(e){
+  const file = e.target.files[0];
+  if(!file || !editingTripFor) return;
+  const trip = trips.find(t=>t.id===editingTripFor);
+  if(!trip) return;
+  // Demo stub: in production this file is sent to a backend that runs
+  // barcode decoding (boarding passes) or an LLM parse (hotels/other PDFs)
+  // and returns structured fields. Here we just record that a file came in.
+  trip.bookings.push({
+    id: 'b'+Date.now(),
+    type: 'flight',
+    title: file.name.replace(/\.[^.]+$/, ''),
+    source: 'Распознано из файла (демо)',
+    start: '',
+    end: '',
+    code: '',
+    notes: 'Загружено: ' + file.name + ' — в демо-версии данные не извлекаются автоматически'
+  });
+  e.target.value = '';
+  render();
+  await persist();
+}
+
+function initTelegram(){
+  try{
+    const tg = window.Telegram && window.Telegram.WebApp;
+    if(!tg) return;
+    tg.ready();
+    tg.expand();
+    const root = document.documentElement.style;
+    const p = tg.themeParams || {};
+    if(p.bg_color) root.setProperty('--paper', p.bg_color);
+    if(p.text_color) root.setProperty('--ink', p.text_color);
+    if(p.hint_color) root.setProperty('--ink-soft', p.hint_color);
+    if(p.button_color) root.setProperty('--teal', p.button_color);
+    if(p.secondary_bg_color) root.setProperty('--card', p.secondary_bg_color);
+  }catch(e){ /* not running inside Telegram — keep default theme */ }
+}
+initTelegram();
+
+load();
+setInterval(render, 60000);
+</script>
+</body>
+</html>
