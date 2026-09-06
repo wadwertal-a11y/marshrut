@@ -86,6 +86,18 @@
   .chevron{flex-shrink:0;transition:transform 0.2s ease;color:var(--ink-soft);}
   .chevron.open{transform:rotate(180deg);}
   .bookings{border-top:1px solid var(--border);padding:14px 14px 16px;display:none;}
+  .checklist-bar{
+    display:flex; align-items:center; gap:10px; background:var(--icon-bg); border-radius:10px;
+    padding:10px 12px; margin-bottom:12px; cursor:pointer; font-size:12.5px; font-weight:600; color:var(--teal-dark);
+  }
+  .checklist-progress{ flex:1; height:6px; background:var(--card); border-radius:4px; overflow:hidden; }
+  .checklist-progress-fill{ height:100%; background:var(--teal); border-radius:4px; transition:width .2s ease; }
+  .checklist-count{ font-size:11px; color:var(--ink-soft); font-weight:600; white-space:nowrap; }
+  .archive-toggle{
+    display:flex; justify-content:space-between; align-items:center; padding:12px 16px;
+    color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer;
+    border-top:1px solid var(--border); margin-top:4px;
+  }
   .bookings.open{display:block;}
 
   .card{
@@ -424,6 +436,7 @@ function searchAirports(q){
 let trips = [];
 let openTripId = null;
 let openBookingKey = null; // `${tripId}:${bookingId}` currently expanded
+let archiveOpen = false;
 let editingTripFor = null;
 let editingBookingId = null;
 let selectedType = 'transport';
@@ -472,14 +485,13 @@ function tripCostSummary(trip){
   if(!currencies.length) return '';
   let usdSum = 0;
   currencies.forEach(c=>{ usdSum += totals[c] / (EXCHANGE_RATES[c] || 1); });
-  const totalRub = usdSum * (EXCHANGE_RATES.RUB || 1);
-  const fmt = n => Math.round(n).toLocaleString('ru-RU');
-  const breakdown = currencies.length > 1
-    ? ' (' + currencies.map(c=>`${fmt(totals[c])} ${CURRENCY_SYMBOLS[c]||c}`).join(' + ') + ')'
+  const fmt = n => n.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+  const breakdown = currencies.length > 1 && !(currencies.length===1 && currencies[0]==='USD')
+    ? ' (' + currencies.map(c=>`${Math.round(totals[c]).toLocaleString('ru-RU')} ${CURRENCY_SYMBOLS[c]||c}`).join(' + ') + ')'
     : '';
-  const needsRate = currencies.some(c=>c!=='RUB');
+  const needsRate = currencies.some(c=>c!=='USD');
   const rateNote = (needsRate && RATES_UPDATED_AT) ? ` · курс на ${fmtRateTime(RATES_UPDATED_AT)}` : '';
-  return `≈ ${fmt(totalRub)} ₽${breakdown}${rateNote}`;
+  return `≈ $${fmt(usdSum)}${breakdown}${rateNote}`;
 }
 
 async function load(){
@@ -630,6 +642,89 @@ function esc(s){
   return d.innerHTML;
 }
 
+function tripLatestDate(trip){
+  const dates = trip.bookings.map(b => new Date(b.end || b.start)).filter(d => !isNaN(d));
+  if(!dates.length) return null;
+  return new Date(Math.max(...dates.map(d=>d.getTime())));
+}
+function isTripArchived(trip){
+  const latest = tripLatestDate(trip);
+  return !!(latest && latest < new Date());
+}
+
+function renderTripCard(trip){
+  const isOpen = openTripId === trip.id;
+  const cl = trip.checklist;
+  const clDone = cl ? cl.filter(i=>i.done).length : 0;
+  const clTotal = cl ? cl.length : 0;
+  const clPct = clTotal ? Math.round(clDone/clTotal*100) : 0;
+
+  let html = `<div class="trip-card">
+    <div class="trip-head" onclick="toggleTrip('${trip.id}')">
+      <div class="trip-head-left">
+        <div class="trip-name">${esc(trip.name)}</div>
+        ${trip.dest ? `<div class="trip-dest">${esc(trip.dest)}</div>` : ''}
+        <div class="trip-meta">${tripRange(trip)}${tripCostSummary(trip) ? ' · ' + tripCostSummary(trip) : ''}</div>
+      </div>
+      <svg class="chevron ${isOpen?'open':''}" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="bookings ${isOpen?'open':''}">
+      <div class="checklist-bar" onclick="openChecklist('${trip.id}')">
+        <span>✔ Чек-лист сборов</span>
+        <div class="checklist-progress"><div class="checklist-progress-fill" style="width:${clPct}%"></div></div>
+        <span class="checklist-count">${clTotal ? `${clDone}/${clTotal}` : 'начать'}</span>
+      </div>
+  `;
+
+  const sorted = [...trip.bookings].sort((a,b)=> (a.start||'') < (b.start||'') ? -1 : 1);
+  sorted.forEach(b=>{
+    const st = bookingStatus(b);
+    const key = trip.id + ':' + b.id;
+    const detailOpen = openBookingKey === key;
+    html += `
+      <div class="card">
+        <div class="card-head" onclick="toggleBooking('${key}')">
+          <div class="card-icon">${bookingIcon(b)}</div>
+          <div class="card-main">
+            <div class="card-title-row">
+              <div class="card-title">${esc(bookingTitle(b))}</div>
+              <span class="status-pill status-${st.key}">${st.label}</span>
+            </div>
+            ${bookingRoute(b) ? `<div class="card-route">${esc(bookingRoute(b))}</div>` : ''}
+            <div class="card-time">${b.start ? fmtDateTime(b.start) : ''}${b.end ? ' → ' + fmtDateTime(b.end) : ''}${bookingDurationBadge(b)}</div>
+            ${b.code ? `<div class="card-code">№ ${esc(b.code)}</div>` : ''}
+          </div>
+        </div>
+        <div class="card-detail ${detailOpen?'open':''}">
+          ${b.source ? (/^https?:\/\//i.test(b.source)
+            ? `<div class="detail-row"><b>Ссылка:</b> <a href="${esc(b.source)}" target="_blank" rel="noopener">${esc(b.source)}</a></div>`
+            : `<div class="detail-row"><b>Источник:</b> ${esc(b.source)}</div>`) : ''}
+          ${b.price ? `<div class="detail-row"><b>Стоимость:</b> ${Number(b.price).toLocaleString('ru-RU')} ${CURRENCY_SYMBOLS[b.currency]||b.currency}</div>` : ''}
+          ${b.notes ? `<div class="detail-row"><b>Заметка:</b> ${esc(b.notes)}</div>` : ''}
+          <div class="detail-actions">
+            <button class="mini-btn" onclick="event.stopPropagation(); openBookingSheet('${trip.id}','${b.id}')">${ICONS.edit} Изменить</button>
+            <button class="mini-btn danger" onclick="event.stopPropagation(); deleteBooking('${trip.id}','${b.id}')">${ICONS.trash} Удалить</button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  html += `
+      <button class="add-booking-btn" onclick="openBookingSheet('${trip.id}')">+ Добавить бронирование вручную</button>
+      <button class="add-booking-btn" onclick="exportTripPDF('${trip.id}')">📄 Экспорт маршрута в PDF</button>
+      <button class="add-ticket-btn" onclick="triggerTicketUpload('${trip.id}')">📎 Прислать билет / PDF <span class="pro-badge">PRO</span></button>
+      <input type="file" id="ticketFile" accept="image/*,.pdf" style="display:none" onchange="handleTicketFile(event)">
+      <div class="parse-hint">Штрихкод перелёта распознаётся автоматически. Для остального пока нужен ручной ввод.</div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="mini-btn" style="flex:1;" onclick="duplicateTrip('${trip.id}')">⧉ Дублировать</button>
+        <button class="del-trip" style="flex:1;margin-top:0;" onclick="deleteTrip('${trip.id}')">Удалить поездку</button>
+      </div>
+    </div>
+  </div>`;
+  return html;
+}
+
 function render(){
   const app = document.getElementById('app');
   if(!loaded){ app.innerHTML=''; return; }
@@ -664,71 +759,29 @@ function render(){
       </div>
     `;
   } else {
-    trips.sort((a,b)=>{
+    const active = trips.filter(t=>!isTripArchived(t));
+    const archived = trips.filter(t=>isTripArchived(t));
+    const byDate = (a,b)=>{
       const da = a.bookings.map(x=>x.start).filter(Boolean).sort()[0] || '9999';
       const db = b.bookings.map(x=>x.start).filter(Boolean).sort()[0] || '9999';
       return da < db ? -1 : 1;
-    });
+    };
+    active.sort(byDate);
+    archived.sort((a,b)=>byDate(b,a)); // most recently finished first
 
-    trips.forEach(trip=>{
-      const isOpen = openTripId === trip.id;
-      html += `<div class="trip-card">
-        <div class="trip-head" onclick="toggleTrip('${trip.id}')">
-          <div class="trip-head-left">
-            <div class="trip-name">${esc(trip.name)}</div>
-            ${trip.dest ? `<div class="trip-dest">${esc(trip.dest)}</div>` : ''}
-            <div class="trip-meta">${tripRange(trip)}${tripCostSummary(trip) ? ' · ' + tripCostSummary(trip) : ''}</div>
-          </div>
-          <svg class="chevron ${isOpen?'open':''}" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div class="bookings ${isOpen?'open':''}">
-      `;
+    active.forEach(trip=>{ html += renderTripCard(trip); });
 
-      const sorted = [...trip.bookings].sort((a,b)=> (a.start||'') < (b.start||'') ? -1 : 1);
-      sorted.forEach(b=>{
-        const st = bookingStatus(b);
-        const key = trip.id + ':' + b.id;
-        const detailOpen = openBookingKey === key;
-        html += `
-          <div class="card">
-            <div class="card-head" onclick="toggleBooking('${key}')">
-              <div class="card-icon">${bookingIcon(b)}</div>
-              <div class="card-main">
-                <div class="card-title-row">
-                  <div class="card-title">${esc(bookingTitle(b))}</div>
-                  <span class="status-pill status-${st.key}">${st.label}</span>
-                </div>
-                ${bookingRoute(b) ? `<div class="card-route">${esc(bookingRoute(b))}</div>` : ''}
-                <div class="card-time">${b.start ? fmtDateTime(b.start) : ''}${b.end ? ' → ' + fmtDateTime(b.end) : ''}${bookingDurationBadge(b)}</div>
-                ${b.code ? `<div class="card-code">№ ${esc(b.code)}</div>` : ''}
-              </div>
-            </div>
-            <div class="card-detail ${detailOpen?'open':''}">
-              ${b.source ? (/^https?:\/\//i.test(b.source)
-                ? `<div class="detail-row"><b>Ссылка:</b> <a href="${esc(b.source)}" target="_blank" rel="noopener">${esc(b.source)}</a></div>`
-                : `<div class="detail-row"><b>Источник:</b> ${esc(b.source)}</div>`) : ''}
-              ${b.price ? `<div class="detail-row"><b>Стоимость:</b> ${Number(b.price).toLocaleString('ru-RU')} ${CURRENCY_SYMBOLS[b.currency]||b.currency}</div>` : ''}
-              ${b.notes ? `<div class="detail-row"><b>Заметка:</b> ${esc(b.notes)}</div>` : ''}
-              <div class="detail-actions">
-                <button class="mini-btn" onclick="event.stopPropagation(); openBookingSheet('${trip.id}','${b.id}')">${ICONS.edit} Изменить</button>
-                <button class="mini-btn danger" onclick="event.stopPropagation(); deleteBooking('${trip.id}','${b.id}')">${ICONS.trash} Удалить</button>
-              </div>
-            </div>
-          </div>
-        `;
-      });
-
+    if(archived.length){
       html += `
-          <button class="add-booking-btn" onclick="openBookingSheet('${trip.id}')">+ Добавить бронирование вручную</button>
-          <button class="add-booking-btn" onclick="openChecklist('${trip.id}')">✔ Чек-лист сборов${trip.checklist ? ` (${trip.checklist.filter(i=>i.done).length}/${trip.checklist.length})` : ''}</button>
-          <button class="add-booking-btn" onclick="exportTripPDF('${trip.id}')">📄 Экспорт маршрута в PDF</button>
-          <button class="add-ticket-btn" onclick="triggerTicketUpload('${trip.id}')">📎 Прислать билет / PDF <span class="pro-badge">PRO</span></button>
-          <input type="file" id="ticketFile" accept="image/*,.pdf" style="display:none" onchange="handleTicketFile(event)">
-          <div class="parse-hint">Разбор фото и PDF — демо-версия интерфейса. В боевой версии данные распознаёт ИИ на сервере.</div>
-          <button class="del-trip" onclick="deleteTrip('${trip.id}')">Удалить поездку</button>
+        <div class="archive-toggle" onclick="toggleArchive()">
+          <span>🗂 Архив (${archived.length})</span>
+          <svg class="chevron ${archiveOpen?'open':''}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
-      </div>`;
-    });
+      `;
+      if(archiveOpen){
+        archived.forEach(trip=>{ html += renderTripCard(trip); });
+      }
+    }
   }
 
   app.innerHTML = html;
@@ -776,6 +829,23 @@ async function deleteTrip(id){
   render();
   await persist();
 }
+async function duplicateTrip(id){
+  const trip = trips.find(t=>t.id===id);
+  if(!trip) return;
+  const copy = JSON.parse(JSON.stringify(trip));
+  copy.id = 't'+Date.now();
+  copy.name = trip.name + ' (копия)';
+  copy.bookings = copy.bookings.map(b=>({...b, id:'b'+Date.now()+Math.random().toString(36).slice(2,6)}));
+  if(copy.checklist) copy.checklist = copy.checklist.map(i=>({...i, id:'c'+Date.now()+Math.random().toString(36).slice(2,6), done:false}));
+  trips.push(copy);
+  openTripId = copy.id;
+  render();
+  await persist();
+}
+function toggleArchive(){
+  archiveOpen = !archiveOpen;
+  render();
+}
 
 function renderTypeRow(){
   const row = document.getElementById('typeRow');
@@ -821,6 +891,7 @@ function renderDynamicFields(){
         <div id="fromCustomForm" style="display:none;margin-top:6px;">
           <input id="fromCustomCity" placeholder="Город" style="margin-bottom:6px;width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card);">
           <input id="fromCustomCode" placeholder="Код (если знаете, необязательно)" style="margin-bottom:6px;width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card);">
+          <select id="fromCustomTz" style="margin-bottom:6px;width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card);">${tzOptionsHtml()}</select>
           <button type="button" class="mini-btn" onclick="addCustomAirport('from')">Добавить</button>
         </div>
       </div>
@@ -832,12 +903,13 @@ function renderDynamicFields(){
         <div id="toCustomForm" style="display:none;margin-top:6px;">
           <input id="toCustomCity" placeholder="Город" style="margin-bottom:6px;width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card);">
           <input id="toCustomCode" placeholder="Код (если знаете, необязательно)" style="margin-bottom:6px;width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card);">
+          <select id="toCustomTz" style="margin-bottom:6px;width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card);">${tzOptionsHtml()}</select>
           <button type="button" class="mini-btn" onclick="addCustomAirport('to')">Добавить</button>
         </div>
       </div>
     `;
-    document.getElementById('bFromAirport').oninput = (e)=>renderAirportResults('from', e.target.value);
-    document.getElementById('bToAirport').oninput = (e)=>renderAirportResults('to', e.target.value);
+    document.getElementById('bFromAirport').oninput = debounce((e)=>renderAirportResults('from', e.target.value), 180);
+    document.getElementById('bToAirport').oninput = debounce((e)=>renderAirportResults('to', e.target.value), 180);
     if(fromAirportObj) document.getElementById('bFromAirport').value = `${fromAirportObj.iata} — ${fromAirportObj.city}`;
     if(toAirportObj) document.getElementById('bToAirport').value = `${toAirportObj.iata} — ${toAirportObj.city}`;
   } else if(selectedType === 'transport'){
@@ -884,6 +956,17 @@ function pickAirport(which, iata){
     document.getElementById('toResults').style.display='none';
   }
 }
+function debounce(fn, ms){
+  let t;
+  return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), ms); };
+}
+const FALLBACK_TZ_LIST = ['Europe/Moscow','Europe/Kaliningrad','Europe/Samara','Asia/Yekaterinburg','Asia/Novosibirsk','Asia/Krasnoyarsk','Asia/Irkutsk','Asia/Vladivostok','Europe/Minsk','Europe/Kyiv','Asia/Almaty','Asia/Tashkent','Asia/Bishkek','Asia/Dushanbe','Asia/Ashgabat','Asia/Baku','Asia/Yerevan','Asia/Tbilisi','Europe/Istanbul','Asia/Dubai','Asia/Qatar','Asia/Bangkok','Asia/Ho_Chi_Minh','Asia/Singapore','Asia/Kuala_Lumpur','Asia/Kolkata','Asia/Shanghai','Asia/Tokyo','Asia/Seoul','Europe/London','Europe/Paris','Europe/Berlin','Europe/Madrid','Europe/Rome','Europe/Athens','America/New_York','America/Los_Angeles','Australia/Sydney'];
+function tzOptionsHtml(){
+  let list = FALLBACK_TZ_LIST;
+  try{ if(Intl.supportedValuesOf) list = Intl.supportedValuesOf('timeZone'); }catch(e){}
+  return '<option value="">Не знаю часовой пояс</option>' + list.map(tz=>`<option value="${tz}">${tz}</option>`).join('');
+}
+
 function toggleCustomAirport(which){
   const form = document.getElementById(which+'CustomForm');
   if(!form) return;
@@ -897,7 +980,7 @@ function saveHistoryValue(key, value){
   if(!value) return;
   let arr = getHistory(key).filter(v=>v!==value);
   arr.unshift(value);
-  try{ localStorage.setItem(key, JSON.stringify(arr.slice(0,15))); }catch(e){}
+  try{ localStorage.setItem(key, JSON.stringify(arr.slice(0,10))); }catch(e){}
 }
 function removeHistoryValue(key, value, inputId){
   const arr = getHistory(key).filter(v=>v!==value);
@@ -934,13 +1017,13 @@ function attachHistory(inputId, key){
 function addCustomAirport(which){
   const cityInput = document.getElementById(which+'CustomCity');
   const codeInput = document.getElementById(which+'CustomCode');
+  const tzInput = document.getElementById(which+'CustomTz');
   const city = cityInput.value.trim();
   if(!city) return;
   let code = codeInput.value.trim().toUpperCase();
   if(!code) code = city.replace(/[^A-Za-zА-Яа-я]/g,'').slice(0,3).toUpperCase() || 'XXX';
-  // tz is intentionally left unknown — this airport won't be used for
-  // timezone-aware flight-duration math until someone confirms its tz
-  const airport = {iata: code, city, name: city, country:'', tz:null, custom:true};
+  const tz = tzInput && tzInput.value ? tzInput.value : null;
+  const airport = {iata: code, city, name: city, country:'', tz, custom:true};
   let customs = [];
   try{ customs = JSON.parse(localStorage.getItem('custom_airports_v1')||'[]'); }catch(e){}
   customs.push(airport);
@@ -1064,52 +1147,76 @@ async function deleteBooking(tripId, bookingId){
 function exportTripPDF(tripId){
   const trip = trips.find(t=>t.id===tripId);
   if(!trip) return;
-  // Keep the QR payload compact: drop free-text notes, keep the structural fields
-  // needed to fully reconstruct the trip on import.
-  const compact = {
-    v: 1, name: trip.name, dest: trip.dest,
-    bookings: trip.bookings.map(b=>({
-      type:b.type, subtype:b.subtype, title:b.title,
-      fromCity:b.fromCity, toCity:b.toCity, fromAirport:b.fromAirport, toAirport:b.toAirport,
-      hotelCity:b.hotelCity, hotelName:b.hotelName, excCity:b.excCity,
-      source:b.source, start:b.start, end:b.end, code:b.code, price:b.price, currency:b.currency
-    }))
-  };
-  const payload = JSON.stringify(compact);
+  try{
+    if(typeof jspdf === 'undefined' || typeof QRCode === 'undefined'){
+      showAppNotice('Библиотеки для PDF не загрузились — проверьте интернет-соединение и попробуйте снова.');
+      return;
+    }
+    // Keep the QR payload compact: drop free-text notes, keep the structural fields
+    // needed to fully reconstruct the trip on import.
+    const compact = {
+      v: 1, name: trip.name, dest: trip.dest,
+      bookings: trip.bookings.map(b=>({
+        type:b.type, subtype:b.subtype, title:b.title,
+        fromCity:b.fromCity, toCity:b.toCity, fromAirport:b.fromAirport, toAirport:b.toAirport,
+        hotelCity:b.hotelCity, hotelName:b.hotelName, excCity:b.excCity,
+        source:b.source, start:b.start, end:b.end, code:b.code, price:b.price, currency:b.currency
+      }))
+    };
+    const payload = JSON.stringify(compact);
 
-  const qrHolder = document.createElement('div');
-  qrHolder.style.display = 'none';
-  document.body.appendChild(qrHolder);
-  new QRCode(qrHolder, {text: payload, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.L});
+    // Positioned off-screen (NOT display:none) — some canvas/QR libraries measure
+    // element dimensions to size their drawing, and display:none reports zero size.
+    const qrHolder = document.createElement('div');
+    qrHolder.style.position = 'absolute';
+    qrHolder.style.left = '-9999px';
+    qrHolder.style.top = '0';
+    document.body.appendChild(qrHolder);
+    new QRCode(qrHolder, {text: payload, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.L});
 
-  setTimeout(()=>{
-    const qrImg = qrHolder.querySelector('img') || qrHolder.querySelector('canvas');
-    const qrData = qrImg.tagName === 'CANVAS' ? qrImg.toDataURL('image/png') : qrImg.src;
+    setTimeout(()=>{
+      try{
+        const qrImg = qrHolder.querySelector('canvas') || qrHolder.querySelector('img');
+        if(!qrImg) throw new Error('QR-код не отрисовался');
+        const qrData = qrImg.tagName === 'CANVAS' ? qrImg.toDataURL('image/png') : qrImg.src;
 
-    const doc = new jspdf.jsPDF();
-    doc.setFontSize(18);
-    doc.text(trip.name, 15, 20);
-    if(trip.dest){ doc.setFontSize(11); doc.setTextColor(120); doc.text(trip.dest, 15, 27); doc.setTextColor(0); }
-    let y = 38;
-    doc.setFontSize(12);
-    [...trip.bookings].sort((a,b)=>(a.start||'')<(b.start||'')?-1:1).forEach(b=>{
-      const title = bookingTitle(b);
-      const route = bookingRoute(b);
-      const when = b.start ? fmtDateTime(b.start) + (b.end ? ' → ' + fmtDateTime(b.end) : '') : '';
-      doc.setFont(undefined,'bold'); doc.text(title, 15, y); doc.setFont(undefined,'normal');
-      y += 6;
-      if(route){ doc.text(route, 15, y); y += 6; }
-      if(when){ doc.text(when, 15, y); y += 6; }
+        const doc = new jspdf.jsPDF();
+        doc.setFontSize(18);
+        doc.text(trip.name || 'Поездка', 15, 20);
+        if(trip.dest){ doc.setFontSize(11); doc.setTextColor(120); doc.text(trip.dest, 15, 27); doc.setTextColor(0); }
+        let y = 38;
+        doc.setFontSize(12);
+        [...trip.bookings].sort((a,b)=>(a.start||'')<(b.start||'')?-1:1).forEach(b=>{
+          const title = bookingTitle(b);
+          const route = bookingRoute(b);
+          const when = b.start ? fmtDateTime(b.start) + (b.end ? ' → ' + fmtDateTime(b.end) : '') : '';
+          doc.setFont(undefined,'bold'); doc.text(title, 15, y); doc.setFont(undefined,'normal');
+          y += 6;
+          if(route){ doc.text(route, 15, y); y += 6; }
+          if(when){ doc.text(when, 15, y); y += 6; }
       if(b.code){ doc.text('№ ' + b.code, 15, y); y += 6; }
-      y += 4;
-      if(y > 260){ doc.addPage(); y = 20; }
-    });
-    doc.addImage(qrData, 'PNG', 15, y + 5, 40, 40);
-    doc.setFontSize(9); doc.setTextColor(140);
-    doc.text('QR-код выше — служебный, для повторной загрузки этого маршрута в приложение "Маршрут".', 60, y + 25, {maxWidth:130});
-    doc.save(`${trip.name || 'marshrut'}.pdf`);
-    document.body.removeChild(qrHolder);
-  }, 150);
+          y += 4;
+          if(y > 260){ doc.addPage(); y = 20; }
+        });
+        doc.addImage(qrData, 'PNG', 15, y + 5, 40, 40);
+        doc.setFontSize(9); doc.setTextColor(140);
+        doc.text('QR-код выше — служебный, для повторной загрузки этого маршрута в приложение "Маршрут".', 60, y + 25, {maxWidth:130});
+        doc.save(`${trip.name || 'marshrut'}.pdf`);
+      }catch(err){
+        showAppNotice('Не получилось собрать PDF: ' + (err && err.message ? err.message : 'неизвестная ошибка') + '. Напишите мне точный текст ошибки, я поправлю.');
+      }finally{
+        document.body.removeChild(qrHolder);
+      }
+    }, 300);
+  }catch(err){
+    showAppNotice('Не получилось начать экспорт: ' + (err && err.message ? err.message : 'неизвестная ошибка'));
+  }
+}
+function showAppNotice(text){
+  const el = document.getElementById('storageNote');
+  if(!el){ alert(text); return; }
+  el.textContent = text;
+  el.style.display = 'block';
 }
 
 async function handleRouteImportFile(e){
@@ -1138,6 +1245,10 @@ async function handleRouteImportFile(e){
 }
 
 function triggerTicketUpload(tripId){
+  if(!isProUser()){
+    showAppNotice('Распознавание билетов по штрихкоду — функция PRO. Пока доступна только вам, остальные добавляют брони вручную.');
+    return;
+  }
   editingTripFor = tripId;
   editingBookingId = null;
   document.getElementById('ticketFile').click();
@@ -1275,7 +1386,7 @@ function initTelegram(){
     if(tg.onEvent) tg.onEvent('themeChanged', ()=>applyColorScheme(tg.colorScheme));
   }catch(e){ applyColorScheme('light'); }
 }
-const OWNER_TELEGRAM_USERNAMES = ['ваш_username_тут']; // впишите сюда свой @username в Telegram (без @, маленькими буквами)
+const OWNER_TELEGRAM_USERNAMES = ['alinnenokkk']; // ваш @username в Telegram
 function isProUser(){
   try{
     const u = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
@@ -1421,14 +1532,12 @@ function showCalDay(key){
   ).join('');
 }
 
-const FEEDBACK_TELEGRAM_USERNAME = 'ваш_username'; // замените на реальный юзернейм в Telegram
+const FEEDBACK_FORM_URL = 'https://forms.gle/ВАША_ССЫЛКА'; // замените на ссылку своей Google-формы
 function sendFeedback(){
-  const text = encodeURIComponent('Отзыв о Маршруте: ');
-  const url = `https://t.me/${FEEDBACK_TELEGRAM_USERNAME}?text=${text}`;
-  if(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink){
-    window.Telegram.WebApp.openTelegramLink(url);
+  if(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openLink){
+    window.Telegram.WebApp.openLink(FEEDBACK_FORM_URL);
   } else {
-    window.open(url, '_blank');
+    window.open(FEEDBACK_FORM_URL, '_blank');
   }
 }
 
